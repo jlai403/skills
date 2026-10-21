@@ -1,3 +1,8 @@
+---
+name: design-review
+description: Review or design code structure and architecture for high cohesion, low coupling, and proper layering. Use during the design phase, before implementation, or when refactoring. Covers module boundaries, naming, object shape, comments, decision framework for where code belongs, and visual review with ASCII diagrams (current vs target, dependency graph, layer diagram).
+---
+
 # Design review skill
 
 ## When to use
