@@ -1,9 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKILLS_FILE="$(cd "$(dirname "$0")" && pwd)/skills.yml"
-SKILLS_SRC="$HOME/.agents/skills"
 SKILLS_VERSION="1.7.0"
+SKILLS_SRC="$HOME/.agents/skills"
+SKILLS_RAW_URL="${SKILLS_RAW_URL:-https://raw.githubusercontent.com/jlai403/skills/main}"
+
+# Locate skills.yml. Running from a checkout uses the file next to this script;
+# every other invocation (curl | bash, bash <(curl ...)) downloads it, because
+# those have no script path on disk.
+script_dir=""
+[[ -f "${BASH_SOURCE[0]:-}" ]] && script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -n "$script_dir" && -f "$script_dir/skills.yml" ]]; then
+  SKILLS_FILE="$script_dir/skills.yml"
+else
+  SKILLS_FILE="$(mktemp -d)/skills.yml"
+  trap 'rm -rf "$(dirname "$SKILLS_FILE")"' EXIT
+  echo "Downloading config from ${SKILLS_RAW_URL}/skills.yml"
+  curl -fsSL "${SKILLS_RAW_URL}/skills.yml" -o "$SKILLS_FILE"
+fi
 
 # Dependency checks
 if ! command -v yq &>/dev/null; then
@@ -13,18 +28,19 @@ if ! command -v yq &>/dev/null; then
   exit 1
 fi
 
+if ! command -v curl &>/dev/null; then
+  echo "Error: curl is required but not installed." >&2
+  exit 1
+fi
+
 if ! command -v npx &>/dev/null; then
   echo "Error: npx is required but not installed." >&2
   echo "  Install Node.js: https://nodejs.org" >&2
   exit 1
 fi
 
-# Nuke all installed skills for clean state
-echo "Removing all installed skills..."
-npx "skills@${SKILLS_VERSION}" remove -g --all -y 2>/dev/null || true
-rm -rf "$SKILLS_SRC"/* 2>/dev/null || true
-
-# Install from config
+# Install from config. Re-running is safe: skills add overwrites existing
+# installs, so no clean-slate wipe is needed.
 repos=($(yq -r '.install | keys | .[]' "$SKILLS_FILE"))
 for repo in "${repos[@]}"; do
   skills_val=$(yq -r ".install[\"$repo\"].skills" "$SKILLS_FILE")
@@ -33,7 +49,7 @@ for repo in "${repos[@]}"; do
   agent_flags=()
   IFS=',' read -ra agent_arr <<< "$agents_raw"
   for a in "${agent_arr[@]}"; do
-    agent_flags+=(-a "$a")
+    [[ -n "$a" ]] && agent_flags+=(-a "$a")
   done
 
   skill_flags=()
