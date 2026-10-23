@@ -6,7 +6,7 @@ source of truth for which skills from which repos get installed for which agents
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jlai403/skills/main/install.sh | bash
+curl -fsSL https://github.com/jlai403/skills/raw/main/install.sh | bash
 ```
 
 If a tool prompts mid-install (e.g. `npx` on a cold cache), use process
@@ -15,7 +15,7 @@ reads stdin consumes script bytes. `<(curl ...)` keeps stdin attached to your
 terminal:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/jlai403/skills/main/install.sh)
+bash <(curl -fsSL https://github.com/jlai403/skills/raw/main/install.sh)
 ```
 
 Requirements:
