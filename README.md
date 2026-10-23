@@ -1,7 +1,7 @@
 # skills
 
-Personal agent skills, plus a config-driven installer. `skills.yml` is the single
-source of truth for which skills from which repos get installed for which agents.
+Personal agent skills and an installer that reads `skills.yml`. That file lists
+which skills to install, from which repos, for which agents.
 
 ## Install
 
@@ -9,10 +9,9 @@ source of truth for which skills from which repos get installed for which agents
 curl -fsSL jlai.ca/skills | bash
 ```
 
-If a tool prompts mid-install (e.g. `npx` on a cold cache), use process
-substitution instead — piping gives bash the script on stdin, so a child that
-reads stdin consumes script bytes. `<(curl ...)` keeps stdin attached to your
-terminal:
+Piping gives bash the script on stdin, so a tool that reads stdin (npx on a cold
+cache, for example) consumes script bytes instead of reading your terminal. If
+that happens, use process substitution, which keeps stdin attached:
 
 ```bash
 bash <(curl -fsSL jlai.ca/skills)
@@ -20,21 +19,20 @@ bash <(curl -fsSL jlai.ca/skills)
 
 Requirements:
 
-- `yq` — `brew install yq` / `pacman -S yq`
-- Node.js with `npx` — <https://nodejs.org>
+- `yq`, install with `brew install yq` or `pacman -S yq`
+- Node.js with `npx` (<https://nodejs.org>)
 - `curl`
 
 ## What the installer does
 
-1. Reads `skills.yml` — from this checkout if `install.sh` is run as a file,
-   otherwise downloads it from `SKILLS_RAW_URL` (`raw.githubusercontent.com`
-   by default).
+1. Reads `skills.yml` from the directory next to `install.sh` when you run the
+   file. Otherwise it downloads a copy from `SKILLS_RAW_URL`, which defaults to
+   `raw.githubusercontent.com`.
 2. For each repo, runs `npx skills@1.7.0 add -g -y <repo> --skill ... -a ...`.
-3. Skills land in `~/.agents/skills` and are linked into each agent's config
-   directory (`~/.claude`, `~/.config/opencode`, `~/.gemini`).
+3. `npx skills` puts each skill in `~/.agents/skills` and links it into every
+   agent directory (`~/.claude`, `~/.config/opencode`, `~/.gemini`).
 
-Re-running is safe. `skills add` overwrites existing installs, so updates are just
-another run.
+Running it again is safe, because `skills add` overwrites existing installs.
 
 ## Config
 
@@ -45,14 +43,14 @@ install:
     agents: [claude-code, opencode, gemini-cli]
 ```
 
-Edit `skills.yml`, then run `./install.sh` from a checkout. When adding a local
-skill, put it in `<name>/SKILL.md` and list it in `skills.yml` — but note that the
-installer fetches `jlai403/skills` from GitHub, so local changes need to be pushed
-before `install.sh` picks them up.
+Edit `skills.yml`, then run `./install.sh` from a checkout. To add a local skill,
+put it in `<name>/SKILL.md` and list it in `skills.yml`. The installer fetches
+`jlai403/skills` from GitHub, so push local changes before `install.sh` can use
+them.
 
 ## Clean slate
 
-Prune skills you have removed from `skills.yml`:
+Remove skills you deleted from `skills.yml`:
 
 ```bash
 npx skills@1.7.0 remove -g --all -y && rm -rf ~/.agents/skills/*
@@ -66,9 +64,10 @@ npx skills@1.7.0 remove -g --all -y && rm -rf ~/.agents/skills
 
 ## Overrides
 
-- `SKILLS_RAW_URL` — base URL for the `skills.yml` download, e.g. to test a branch
-  before merging:
-  ```bash
-  SKILLS_RAW_URL=https://raw.githubusercontent.com/jlai403/skills/my-branch \
-    bash <(curl -fsSL https://raw.githubusercontent.com/jlai403/skills/my-branch/install.sh)
-  ```
+`SKILLS_RAW_URL` sets the base URL for the `skills.yml` download. Use it to test
+a branch before merging:
+
+```bash
+SKILLS_RAW_URL=https://raw.githubusercontent.com/jlai403/skills/my-branch \
+  bash <(curl -fsSL https://raw.githubusercontent.com/jlai403/skills/my-branch/install.sh)
+```
