@@ -1,5 +1,6 @@
 # Skills configuration — single source of truth
-# Edit this file, then run: ./main.zsh --skills
+# Edit this file, then run: ./install.sh
+# (or ./main.zsh --skills in ~/.dotfiles, which curls this repo's install.sh)
 
 install:
   jlai403/skills:
