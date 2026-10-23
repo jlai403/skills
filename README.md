@@ -27,7 +27,8 @@ Requirements:
 ## What the installer does
 
 1. Reads `skills.yml` — from this checkout if `install.sh` is run as a file,
-   otherwise downloads it from the `raw.githubusercontent.com` URL above.
+   otherwise downloads it from `SKILLS_RAW_URL` (`raw.githubusercontent.com`
+   by default).
 2. For each repo, runs `npx skills@1.7.0 add -g -y <repo> --skill ... -a ...`.
 3. Skills land in `~/.agents/skills` and are linked into each agent's config
    directory (`~/.claude`, `~/.config/opencode`, `~/.gemini`).
