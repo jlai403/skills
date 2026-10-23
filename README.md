@@ -6,12 +6,17 @@ source of truth for which skills from which repos get installed for which agents
 ## Install
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/jlai403/skills/main/install.sh)
+curl -fsSL https://raw.githubusercontent.com/jlai403/skills/main/install.sh | bash
 ```
 
-Process substitution rather than `curl ... | bash`, because piping gives bash the
-script on stdin — anything that reads stdin (prompts, progress UIs) sees EOF
-instead of your terminal. `bash <(curl ...)` keeps stdin attached.
+If a tool prompts mid-install (e.g. `npx` on a cold cache), use process
+substitution instead — piping gives bash the script on stdin, so a child that
+reads stdin consumes script bytes. `<(curl ...)` keeps stdin attached to your
+terminal:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/jlai403/skills/main/install.sh)
+```
 
 Requirements:
 
