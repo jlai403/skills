@@ -1,19 +1,21 @@
 ---
 name: software-arch-review
-description: Software architecture review for high cohesion, low coupling, and enforced layering. Backend follows clean/hexagonal architecture (context-first folders: application, models, service_objects, infrastructure) with DDD principles when applicable; terraform lives under iac/. Frontend is feature-based. Both must be modular. The review runs in digestable phases: inventory → violation walkthrough (one decision per exchange) → target → migration; Mermaid available for PRs on request. Covers module boundaries, domain modeling, aggregate design, naming, object shape, comments, decision framework for where code belongs, and visual review with structure outlines, edge lists, and a violation register.
+description: Software architecture review — use when designing a new structure, reviewing existing structure, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, service_objects, infrastructure; DDD when applicable), feature-based frontend, and modularity. Runs as a phased review (one decision per exchange).
 ---
 
 # Software architecture review
 
 ## When to use
 
-Invoked during the design phase, whether proposing new code or reviewing existing code. Focuses on high cohesion, low coupling, and enforced layering. Produces structure outlines for visual iteration.
+**Applicable when:** designing structure for new code, reviewing the structure of existing code, refactoring (split/merge modules, wrong-layer logic), deciding where code belongs, or answering any question of the form "why does X import Y".
+
+**Not applicable when:** reviewing the *behavior* of a diff (that's `requesting-code-review`), defining domain language or glossaries (that's `domain-modeling`), or trivial single-file changes with no structural decision.
 
 Two modes:
 - **Greenfield**: designing a new feature or system from scratch
 - **Brownfield**: reviewing existing code that needs restructuring
 
-Companion skills: `domain-modeling` defines what the domain concepts are (glossary, ADRs); this skill enforces where those concepts live and what they may import (aggregates as boundaries, value objects at construction, ACL placement). Reference domain-modeling's output — do not re-generate glossaries or ADRs here. This is not a code-review skill; behavioral diff review belongs to `requesting-code-review`.
+Companion skills: `domain-modeling` defines what the domain concepts are (glossary, ADRs); this skill enforces where those concepts live and what they may import (aggregates as boundaries, value objects at construction, ACL placement). Reference domain-modeling's output — do not re-generate glossaries or ADRs here.
 
 ## Architecture prescriptions
 
