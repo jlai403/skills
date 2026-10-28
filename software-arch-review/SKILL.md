@@ -1,6 +1,6 @@
 ---
 name: software-arch-review
-description: Software architecture review — use when designing a new structure, reviewing existing structure, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, service_objects, infrastructure; DDD when applicable), feature-based frontend, and modularity. Runs as a phased review (one decision per exchange).
+description: Software architecture review — use when designing a new structure, reviewing existing structure, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, services, infrastructure; DDD when applicable), feature-based frontend, and modularity. Runs as a phased review (one decision per exchange).
 ---
 
 # Software architecture review
@@ -30,14 +30,14 @@ transport/
 
 application/
   use cases ... one per business transaction
-  orchestrates models + service objects + ports; no protocol, no UI
+  orchestrates models + services + ports; no protocol, no UI
 
 models/
   entities, value objects, aggregates, events
   declares ports
   pure: no I/O, imports nothing outward
 
-service_objects/
+services/
   domain services — rules spanning aggregates; event handlers
 
 infrastructure/
@@ -46,7 +46,7 @@ infrastructure/
   external services ... APIs, queues
 ```
 
-- Dependencies point inward. Models import nothing from transport, application, service_objects, or infrastructure.
+- Dependencies point inward. Models import nothing from transport, application, services, or infrastructure.
 - Ports are declared by the models/application layer; driven adapters implement them from outside (dependency inversion).
 - Repositories are driven adapters — collection-like interfaces over storage (`get`, `add`, `save`, `delete`), not a separate bottom tier.
 - Adapter output is domain types, never raw DB rows or external SDK types (anti-corruption at the boundary).
@@ -103,10 +103,10 @@ Do not build for hypothetical needs. Delete unused callers. Do not add endpoints
 ```
 src/
   <context>/
-    application/            use cases — orchestrate models + service objects + ports
+    application/            use cases — orchestrate models + services + ports
     models/                 entities, value objects, aggregates, events;
                             invariants enforced here; declares ports; no I/O
-    service_objects/        domain services: cross-aggregate rules,
+    services/               domain services: cross-aggregate rules,
                             cross-boundary event handling
     infrastructure/         driven adapters for this context:
                             repos, external service clients
@@ -114,7 +114,7 @@ src/
                             creds bootstrap, bus clients — never context
                             repos, never a grab-bag
   single-context exception: a service likely to stay single-context may use
-  flat layers (src/application/, src/models/, src/service_objects/,
+  flat layers (src/application/, src/models/, src/services/,
   src/infrastructure/) with no per-context box — no ceremony for one child.
 
 iac/                        terraform at repo root; never imported by src/,
@@ -124,7 +124,7 @@ iac/                        terraform at repo root; never imported by src/,
 - Contexts import other contexts only via a public index or domain events — never each other's internals.
 - Splitting a context is cheap: one directory. Going back the other direction is cheap too. The expensive migration is flat-layers → context-first (moves every file), so decide by *expected* size, not today's size.
 
-**2a. No intra-layer scatter.** One aggregate is one module inside `models/`. Pressure to split `models/checkout/merch.ts` + `models/checkout/offers.ts` signals a missing aggregate or boundary — the fix is a context split, not file splitting. Applies equally in `application/`, `service_objects/`, and frontend features.
+**2a. No intra-layer scatter.** One aggregate is one module inside `models/`. Pressure to split `models/checkout/merch.ts` + `models/checkout/offers.ts` signals a missing aggregate or boundary — the fix is a context split, not file splitting. Applies equally in `application/`, `services/`, and frontend features.
 
 **3. The layer-first trade-off (why context-first).** Flat layers scatter one concept across four folders. Fine when the service has one context; otherwise it's the smell: unrelated rules change together in `models/`, PRs cross contexts, deletion requires hunting. The scatter view is the trigger for rule 2.
 
@@ -254,13 +254,13 @@ Does it wire a protocol to the app (HTTP route, CLI command, event handler)?
   -> Transport. Calls a use case. No business logic, no direct adapter access.
 
 Is it one business transaction (place order, approve transfer)?
-  -> Use case, in application/. Orchestrates models + service_objects + ports.
+  -> Use case, in application/. Orchestrates models + services + ports.
 
 Is it a business rule a domain concept could carry (compute, validate, decide)?
   -> models/: the entity / value object / aggregate that owns the words.
 
 Is it a rule spanning aggregates (cross-boundary invariant, multi-aggregate transaction)?
-  -> service_objects/: domain service. Not inside one model, not a grab-bag.
+  -> services/: domain service. Not inside one model, not a grab-bag.
 
 Does another aggregate need to react to something that happened in a different aggregate?
   -> Domain event, not a call across the boundary.
@@ -324,11 +324,11 @@ src/checkout/
   transport/
     routes ... call one use case each, no logic
   application/
-    checkout.ts ... one per transaction; calls models + service_objects + ports
+    checkout.ts ... one per transaction; calls models + services + ports
   models/
     order.ts, money/ ... own the rules, declare ports
     pure: imports nothing outward
-  service_objects/
+  services/
     pricing.ts ... cross-aggregate rules
   infrastructure/
     order-repo.ts ... collection-like, wraps storage
@@ -385,10 +385,10 @@ Coupling:
 - [ ] Do dependencies point inward (backend) / toward stable code (frontend)?
 
 Backend layering (hexagonal):
-- [ ] Does models/ import nothing outward — no transport, application, service_objects, infrastructure imports?
+- [ ] Does models/ import nothing outward — no transport, application, services, infrastructure imports?
 - [ ] Are ports declared by models/application, with infrastructure implementing them?
 - [ ] Is each use case one business transaction, in the application layer?
-- [ ] Do cross-aggregate rules live in service_objects/, not inside one model or a service grab-bag?
+- [ ] Do cross-aggregate rules live in services/, not inside one model or a service grab-bag?
 - [ ] Are transport routes logic-free, calling use cases only?
 - [ ] Are repositories collection-like and flowing through a port?
 - [ ] Do infrastructure adapters return domain types, never raw rows or SDK types?
