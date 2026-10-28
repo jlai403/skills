@@ -194,7 +194,15 @@ That is the whole message. No preamble, no summary of the layer diagram, no rest
 
 ### Phase 3: Wrap-up
 
-Final outlines and edge list reflecting all decisions. The register shows each id's status: `fix`, `dropped`, `parked`, `superseded`. Nothing silently vanishes. Brownfield: ordered migration steps, smallest risk first, each citing the ids it disposes, what could break, and what to test after it. On request: one Mermaid block per stack for the PR.
+Final outlines and edge list reflecting all decisions. The register shows each id's status: `fix`, `dropped`, `parked`, `superseded`. Nothing silently vanishes. On request: one Mermaid block per stack for the PR.
+
+Brownfield migration. Ordered steps, smallest risk first.
+
+**Step 0: behavior lock.** Before any structure moves, blackbox or integration tests must pin the behavior at the boundary being changed (module entry points, public interfaces, storage edges).
+
+- Unit tests do not count for this. They pin internals, and internals are exactly what the refactor moves; passing units prove nothing about the behavior crossing the boundary. They remain useful for everything else (rule 4 stands); they are just not a behavior lock.
+- If the lock is missing, adding blackbox/integration tests is the first migration step and enters the register as `T#` rows with the same shape as any suggestion, walked in Phase 2. Their fix ranks ahead of every structural step.
+- Scope: tests pin the boundary under refactor, per step. This is not a demand for repo-wide coverage before anything moves.
 
 ### Violation register
 
@@ -441,6 +449,7 @@ Size and shape:
 - [ ] Any `utils`/`lib`/`helpers`/`common` grab-bags that should be a named concept?
 - [ ] Any module imported by everything else?
 - [ ] Any duplicate logic across modules?
+- [ ] Before brownfield refactors, do blackbox/integration tests pin behavior at the boundaries being moved?
 
 ## Structural smells and target patterns
 
@@ -473,7 +482,7 @@ What each phase emits. Nothing arrives all at once:
 | 0 Scope | one question, or "reviewing X" |
 | 1 Inventory | current outlines + edge list with FIX/Q marks + "accurate?" |
 | 2 Suggestion loop | one V# per exchange: signal, rule broken, proposed fix; iterate as needed |
-| 3 Wrap-up | final outline; register with status per id (fix/dropped/parked/superseded); brownfield migration steps; Mermaid on request |
+| 3 Wrap-up | final outline; register with status per id (fix/dropped/parked/superseded); brownfield migration with `T#` behavior-lock tests first; Mermaid on request |
 
 ## Refactoring triggers
 
