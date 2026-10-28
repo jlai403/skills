@@ -9,8 +9,6 @@ description: Software architecture review — use when designing a new structure
 
 **Applicable when:** designing structure for new code, reviewing the structure of existing code, refactoring (split/merge modules, wrong-layer logic), deciding where code belongs, or answering any question of the form "why does X import Y".
 
-**Not applicable when:** reviewing the *behavior* of a diff (that's `requesting-code-review`), defining domain language or glossaries (that's `domain-modeling`), or trivial single-file changes with no structural decision.
-
 Two modes:
 - **Greenfield**: designing a new feature or system from scratch
 - **Brownfield**: reviewing existing code that needs restructuring
