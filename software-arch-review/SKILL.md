@@ -20,31 +20,22 @@ One per stack. They are the target every review judges against.
 ### Backend: clean / hexagonal
 
 ```
-+---------------------------------------------------+
-| Transport (HTTP routes, CLI, event handlers)      |
-|   wires protocol to use cases. No logic.          |
-+-------------------------+-v-----------------------+
-                          |
-                          v
-+-------------------------+-------------------------+
-| Application (use cases)                           |
-|   one use case per business transaction.          |
-|   Orchestrates domain + ports. No protocol, no UI.|
-+-------------------------+-v-----------------------+
-                          |
-                          v
-+-------------------------+-------------------------+
-| Domain (entities, value objects, aggregates,     )|
-| (domain services, domain events, ports declared  )|
-| (here and in the application layer               )|
-|   pure. No I/O. Imports nothing outward.          |
-+---------------------------------------------------+
-             ^                 ^
-   driven adapters implement ports:
-+-----------------+   +--------------------+
-| Repositories    |   | External services  |
-| (DB is a detail)|   | (APIs, queues, ...)|
-+-----------------+   +--------------------+
+transport/
+  routes, CLI, event handlers ... wire protocol to use cases
+  no logic
+
+application/
+  use-cases/ ... one per business transaction
+  orchestrates domain + ports; no protocol, no UI
+
+domain/
+  entities, value objects, aggregates, domain services, events
+  declares ports
+  pure: no I/O, imports nothing outward
+
+adapters/ (driven — implement ports from outside, pointing inward)
+  repositories ... collection-like over storage (DB is a detail)
+  external services ... APIs, queues
 ```
 
 - Dependencies point inward. Domain imports nothing from transport, application, or adapters.
@@ -55,24 +46,18 @@ One per stack. They are the target every review judges against.
 ### Frontend: feature-based, modular
 
 ```
-+---------------------------------------------------+
-| Routes / screens                                  |
-|   compose features. Minimal logic.                |
-+-------------------------v-------------------------+
-| features/<capability>/                            |
-+---------------------------------------------------+
-|  |- UI         (components of this feature)       |
-|  |- model      (state, validation, domain logic)  |
-|  |- api        (the endpoints it calls)           |
-|  \- index.ts   (its public interface)             |
-+---------------------------------------------------+
-             |
-             v  ONLY via public interfaces
-+---------------------------------------------------+
-| shared/                                           |
-|   cross-cutting primitives, typed, named, small.  |
-|   NOT a dumping ground. No feature logic.         |
-+---------------------------------------------------+
+routes/
+  screens ... compose features, minimal logic
+
+features/<capability>/
+  ui/ ... components of this feature
+  model/ ... state, validation, domain logic
+  api/ ... the endpoints it calls
+  index.ts ... its public interface (the ONLY allowed import)
+
+shared/
+  cross-cutting primitives: typed, named, small
+  NOT a dumping ground — no feature logic
 ```
 
 - A feature owns everything about one business capability. Features do not import each other's internals — only an exposed public interface.
@@ -112,7 +97,7 @@ Do not build for hypothetical needs. Delete unused callers. Do not add endpoints
 Example of how to present one issue:
 
 ```
-!! route -> repository (bypasses use case)
+V1  FIX   route -> repository (bypasses use case)
 
 The transport layer reaches straight into a driven adapter.
 Move the call into a use case and let the route depend on it.
@@ -229,132 +214,86 @@ Does it only describe one route's composition?
 
 ## Visual architecture review
 
-Produce three ASCII diagrams for every review. Iterate on these with the user before writing any code.
+Text-native everywhere: outline graphs for structure, edge lists for dependencies, a numbered register for violations. Plain ASCII only — headless sessions, terminal paste, grep, PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
 
-### 1. Current vs target structure
+### Markers
 
-**Greenfield**: shows proposed target only (no current state to compare).
-**Brownfield**: shows side-by-side comparison of what exists and what you are proposing.
+- `FIX` — breaks a stated rule of the prescription (wrong layer, wrong dependency direction, leaked internals, grab-bag module). Non-negotiable; must appear in the migration path.
+- `Q` — judgement call worth discussing (possible grab-bag, boundary question, dubious shared/ candidate). May be argued away; must be surfaced.
+- `V#` — stable id in the violation register, cited by the walk-through and the migration path.
 
-```
-BROWNFIELD (backend):
-CURRENT                             TARGET (hexagonal)
--------------------------           ---------------------------
-+-----------------------+           +--------------------------+
-| api.ts                |           | transport/ (routes)      |
-|  |- business logic    |           |  \- calls use cases      |
-|  |- db calls          |           +-------------+------------+
-|  |- data transform    |                         |
-+-----------------------+           +-------------v------------+
-                                    | application/use-cases/   |
-+-----------------------+           |  |- one per transaction |
-| service.ts            |           |  |- calls domain + ports |
-|  |- more logic        |           |  \- no I/O, no protocol  |
-|  |- db calls          |           +-------------+------------+
-|  |- utils             |                         |
-+-----------------------+           +-------------v------------+
-                                    | domain/                  |
-+-----------------------+           |  |- entities, VOs,       |
-| db.ts                 |           |  |  aggregates, events   |
-|  \- raw queries       |           |  |- declares ports       |
-+-----------------------+           |  \- imports nothing      |
-                                    +-------------^------------+
-                                                  |
-                                    driven adapters implement ports:
-                                    +--------------------------+
-                                    | adapters/ (repos, APIs)  |
-                                    |  \- db wrapper, no leaks |
-                                    +--------------------------+
-```
+### 1. Structure outlines
 
-### 2. Dependency graph
-
-Modules as nodes, imports as edges. Shows coupling and direction, front and back.
+One outline per stack; one per bounded context or feature when the system is big. Depth cap ~3 levels — flatten deeper structure into focused outlines. Greenfield: proposed target only. Brownfield: current outline then target outline.
 
 ```
-        +----------+
-        |  api.ts  |
-        +----+-----+
-             |
-             v
-        +----------+
-        | Service  |
-        +----+-----+
-             |            +----------+
-             |            |  utils   |
-             v         +-->+----------+
-        +----------+   |
-        |  Domain  |---+
-        +----+-----+
-              v
-        +----------+
-        |  Adapters|
-        +----------+
+BROWNFIELD (backend) — CURRENT
 
-!! api.ts -> db.ts direct (bypasses use case)
-!! Domain -> utils (should be a method on the owning concept)
-!! Domain -> adapters (adapters must point inward, not out)
+api.ts
+  business logic (mixed in)
+  db calls
+  data transform
+service.ts
+  more logic
+  db calls
+utils/
+  grab-bag
+db.ts
+  raw queries
+
+TARGET (hexagonal)
+
+transport/
+  routes ... call one use case each, no logic
+application/
+  use-cases/
+    checkout ... one per transaction; calls domain + ports
+domain/
+  order.ts, money/ ... own the rules, declare ports
+  pure: imports nothing outward
+adapters/ (driven)
+  order-repo.ts ... collection-like, wraps storage
 ```
 
-### 3. Layer diagram — one per stack
+### 2. Edge list + violation register
 
-Backend (hexagonal enforcement):
-
-```
-+---------------------------------------------+
-|  Transport (HTTP, CLI, Events)              |
-|  -----------------------------------------  |
-|  api.ts OK                                  |
-|  !! routes contain business logic            |
-+---------------------------------------------+
-|  Application (use cases)                    |
-|  -----------------------------------------  |
-|  checkout.ts OK                             |
-|  !! also does data transform (move to domain)|
-+---------------------------------------------+
-|  Domain                                     |
-|  -----------------------------------------  |
-|  order.ts OK                                |
-|  !! imports from adapters (inverse direction)|
-+---------------------------------------------+
-v  (dependencies point inward; adapters implement ports from outside)
-+---------------------------------------------+
-|  Driven adapters (repos, external services) |
-|  -----------------------------------------  |
-|  order-repo.ts OK (collection-like)         |
-|  !! returns raw db rows (wrap at boundary)   |
-+---------------------------------------------+
-```
-
-Frontend (feature-based enforcement):
+Every cross-module dependency as a row. This is the lossless form of a dependency graph and scales to any size — an edge list of 30 edges is readable; a graph of 30 nodes is not.
 
 ```
-+---------------------------------------------+
-|  Routes / screens                           |
-|  -----------------------------------------  |
-|  page.tsx OK (composes features)            |
-|  !! owns cart logic (move into feature)      |
-+---------------------------------------------+
-|  features/<capability>/                     |
-|  -----------------------------------------  |
-|  cart/ OK (owns UI, model, api)             |
-|  !! cart/ imports checkout/'s internals      |
-|  !! model logic lives in shared/ (leakage)   |
-+---------------------------------------------+
-|  shared/ (cross-cutting only)               |
-|  -----------------------------------------  |
-|  money/ OK                                  |
-|  !! utils.ts grab-bag (name the concept)     |
-+---------------------------------------------+
+edges
+  api.ts -> db.ts                    bypasses the use case (V1 FIX)
+  service.ts -> utils.ts             rule belongs on the owning type (V2 FIX)
+  domain -> adapters                 must point inward (V3 FIX)
+
+violations
+  V1  FIX   api.ts -> db.ts          transport reaches into a driven adapter — route calls a use case instead
+  V2  FIX   service.ts -> utils.ts   rule belongs on the owning domain type
+  V3  FIX   domain -> adapters       declare a port; adapters implement it
+```
+
+```
+edges (frontend)
+  page.tsx -> cart/                  OK (composition)
+  cart -> checkout/index.ts          OK (public interface)
+  cart -> checkout/model             (V1 FIX) internal import
+  shared/format.ts <- cart           (V2 Q) cross-cutting, or cart-local?
+
+violations
+  V1  FIX   cart -> checkout/model   import checkout's public interface only
+  V2  Q     shared/format.ts         cross-cutting, or move into cart/?
 ```
 
 ### How to iterate
 
-1. Draw current state (brownfield) or proposed state (greenfield). Map modules, imports, and layers.
-2. Mark violations. Use `!!` for each smell: wrong layer, bad coupling, wrong dependency direction, leaky abstraction, grab-bag module.
-3. Draw target state. Proposed modules, hexagonal/feature boundaries, correct dependency direction.
-4. Walk through with user. Confirm the target makes sense before any code changes.
-5. Produce migration path (brownfield only). Incremental steps from current to target.
+1. Outline current state (brownfield) or proposed target (greenfield).
+2. Mark every violation `FIX`/`Q` inline and log it in the register with id, signal, and fix.
+3. Walk the register one violation at a time (working style above). Disposition per id: fix now, argue away, or park.
+4. Redraw the target outline. Confirm it before any code changes.
+5. Migration path (brownfield only): incremental steps, each leaving the codebase working, citing the ids it disposes.
+
+### Shareable diagram (optional)
+
+For a PR or notes: emit one Mermaid block per stack (a compact flowchart). GitHub renders it in-band; headless elsewhere it degrades to readable code. Small only — one diagram per stack, never a panopticon. The outline above remains the artifact of record in-session.
 
 ## Architecture review checklist
 
@@ -437,11 +376,12 @@ Size and shape:
 
 ## Output format
 
-1. Current state (brownfield) or proposed state (greenfield): ASCII diagrams with `!!` violations marked
-2. Issues found: every smell tied to a file and a rule it breaks (one line each)
-3. Target structure: ASCII diagrams of proposed modules, layers, dependencies
-4. Migration path (brownfield only): incremental steps, each leaving the codebase working
+1. Current state (brownfield) or proposed state (greenfield): structure outlines with `FIX`/`Q` markers inline
+2. Violation register: every `V#` with signal and fix, one line each
+3. Target structure: outline graphs of proposed modules, hexagonal/feature boundaries, dependency edges
+4. Migration path (brownfield only): incremental steps, each leaving the codebase working, citing the `V#` it disposes
 5. Risk assessment: what could break, what to test after each step
+6. Shareable diagram (optional, on request): Mermaid blocks for PRs/notes
 
 ## Refactoring triggers
 
