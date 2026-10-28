@@ -3,7 +3,7 @@
 
 install:
   jlai403/skills:
-    skills: [coding-preferences, design-review]
+    skills: [coding-preferences, software-arch-review]
     agents: [claude-code, opencode, gemini-cli]
 
   obra/superpowers:
