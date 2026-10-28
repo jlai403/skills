@@ -126,13 +126,39 @@ iac/                        terraform at repo root; never imported by src/,
 
 **2a. No intra-layer scatter.** One aggregate is one module inside `models/`. Pressure to split `models/checkout/merch.ts` + `models/checkout/offers.ts` signals a missing aggregate or boundary — the fix is a context split, not file splitting. Applies equally in `application/`, `services/`, and frontend features.
 
+**2b. Hoist rule.** A folder exists to hold more than one standing thing at the same level. When a layer role holds exactly one file in a context, hoist it to context root and put the role in the name:
+
+```
+src/checkout/          (small context — every role has ≤1 file)
+
+  transport.ts             routes only (grows into transport/http.ts, ...)
+  checkout.ts              the use case (application role)
+  order.ts                 the aggregate (models role)
+  pricing-service.ts       domain service (services role)
+  order-repo.ts            driven adapter (infrastructure role)
+  index.ts                 public interface of the context
+
+  grows into per-role folders when a role crosses one file.
+```
+
+- Mixed granularity is normal; mixed naming is not. Within one context, a role is either always a folder or always a suffixed root file — never `order-repo.ts` beside a sibling's `infrastructure/payment-repo.ts`.
+- Growth is mechanical: cross the threshold, mkdir + move one file, nothing else changes.
+- Role vs mechanism naming: `transport/` is the role (protocol wiring, no logic); mechanism names like `routes/` belong to leaves or to framework-native mapping (rule 1) — an HTTP-only service may spell the role `routes/`.
+- The context folder always exists, even when the whole context is one file (`src/checkout/checkout.ts`) — it is a boundary, not convenienced away.
+- The role suffix in the symbol makes layers greppable: a grep for `*-repo` finds every driven adapter of a concept.
+
+**2c. File name = primary symbol.** A file exports exactly one primary class/function/object; the file is named after it in the stack's casing: `Order` → `order.ts`, `OrderRepo` → `order-repo.ts`, `PricingService` → `pricing-service.ts`, `checkout()` → `checkout.ts`.
+
+- Exceptions: `index.ts` (the public interface barrel), `*.test.ts` collocations, and 2b's role-hoisted wiring files (`transport.ts` mounts routes — there is no `Transport` class, and inventing one is worse).
+- A file whose export is "everything in the file" either hides a missing type or a missing concept — the same diagnostic as the grab-bag rule, at file granularity.
+
 **3. The layer-first trade-off (why context-first).** Flat layers scatter one concept across four folders. Fine when the service has one context; otherwise it's the smell: unrelated rules change together in `models/`, PRs cross contexts, deletion requires hunting. The scatter view is the trigger for rule 2.
 
 **4. Test collocation.** Tests live beside the code they test (`*.test.*` next to the module, or a `__tests__/` sibling) — never a global `tests/` tree. Excluded from the build graph per rule 0.
 
 **5. shared/ admission rule (frontend).** A primitive enters `shared/` only when: 2+ features use it AND it names exactly one concept AND its surface is deliberate and tested. Otherwise it stays in the feature.
 
-**6. Folder smells.** Holding folders (`core/`, `misc/`, `lib/`, `common/`, a folder with one file that exists to hold others) are `FIX`-level violations. The grab-bag ban applies everywhere in the tree, including `infrastructure/`.
+**6. Folder smells.** Holding folders (`core/`, `misc/`, `lib/`, `common/`, a folder with one file that exists to hold others) are `FIX`-level violations. One-child folders are resolved by the hoist rule (2b). The grab-bag ban applies everywhere in the tree, including `infrastructure/`.
 
 **7. Monorepo extraction triggers.** Extract a package when: a separate team owns it, it deploys separately, or it runs on a different stack. Until then, a directory — not a package.
 
