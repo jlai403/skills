@@ -1,6 +1,6 @@
 ---
 name: software-arch-review
-description: Software architecture review for high cohesion, low coupling, and enforced layering. Backend follows clean/hexagonal architecture with DDD principles when applicable. Frontend is feature-based. Both must be modular. Use during the design phase, before implementation, or when refactoring. Covers module boundaries, domain modeling, aggregate design, naming, object shape, comments, decision framework for where code belongs, and visual review with ASCII diagrams (current vs target, dependency graph, layer diagram).
+description: Software architecture review for high cohesion, low coupling, and enforced layering. Backend follows clean/hexagonal architecture (context-first folders: application, models, service_objects, infrastructure) with DDD principles when applicable; terraform lives under iac/. Frontend is feature-based. Both must be modular. Use during the design phase, before implementation, or when refactoring. Covers module boundaries, domain modeling, aggregate design, naming, object shape, comments, decision framework for where code belongs, and visual review with structure outlines, edge lists, and a violation register.
 ---
 
 # Software architecture review
@@ -21,27 +21,33 @@ One per stack. They are the target every review judges against.
 
 ### Backend: clean / hexagonal
 
+Role view (context-first folder shapes live in "Folder structure heuristics" below):
+
 ```
 transport/
   routes, CLI, event handlers ... wire protocol to use cases
   no logic
 
 application/
-  use-cases/ ... one per business transaction
-  orchestrates domain + ports; no protocol, no UI
+  use cases ... one per business transaction
+  orchestrates models + service objects + ports; no protocol, no UI
 
-domain/
-  entities, value objects, aggregates, domain services, events
+models/
+  entities, value objects, aggregates, events
   declares ports
   pure: no I/O, imports nothing outward
 
-adapters/ (driven — implement ports from outside, pointing inward)
+service_objects/
+  domain services — rules spanning aggregates; event handlers
+
+infrastructure/
+  driven from outside, pointing inward:
   repositories ... collection-like over storage (DB is a detail)
   external services ... APIs, queues
 ```
 
-- Dependencies point inward. Domain imports nothing from transport, application, or adapters.
-- Ports are declared by the domain/application layer; driven adapters implement them from outside (dependency inversion).
+- Dependencies point inward. Models import nothing from transport, application, service_objects, or infrastructure.
+- Ports are declared by the models/application layer; driven adapters implement them from outside (dependency inversion).
 - Repositories are driven adapters — collection-like interfaces over storage (`get`, `add`, `save`, `delete`), not a separate bottom tier.
 - Adapter output is domain types, never raw DB rows or external SDK types (anti-corruption at the boundary).
 
@@ -85,6 +91,50 @@ Apply when the code encodes real business rules. Skip for plumbing-heavy code.
 ### YAGNI
 
 Do not build for hypothetical needs. Delete unused callers. Do not add endpoints nobody calls. Do not refactor for purity alone — accept coupling that buys compile-time safety.
+
+### Folder structure heuristics
+
+**0. `src/` rule.** All production code required for build lives under `src/`. Tests, scripts, fixtures, and docs are never in the build graph. If the build config is fed code from outside `src/`, the layout or the config is wrong.
+
+**1. Framework-native first.** Boundaries are non-negotiable; directory names are not. Map the shapes below onto the framework's own conventions rather than fighting them. On brownfield repos, keep framework-native folder names and enforce the boundaries instead — no rename-for-purity migrations unless they also fix a `FIX`-level violation.
+
+**2. Context-first by default:**
+
+```
+src/
+  <context>/
+    application/            use cases — orchestrate models + service objects + ports
+    models/                 entities, value objects, aggregates, events;
+                            invariants enforced here; declares ports; no I/O
+    service_objects/        domain services: cross-aggregate rules,
+                            cross-boundary event handling
+    infrastructure/         driven adapters for this context:
+                            repos, external service clients
+  infrastructure/           shared-kernel plumbing ONLY: connection pools,
+                            creds bootstrap, bus clients — never context
+                            repos, never a grab-bag
+  single-context exception: a service likely to stay single-context may use
+  flat layers (src/application/, src/models/, src/service_objects/,
+  src/infrastructure/) with no per-context box — no ceremony for one child.
+
+iac/                        terraform at repo root; never imported by src/,
+                            never under src/
+```
+
+- Contexts import other contexts only via a public index or domain events — never each other's internals.
+- Splitting a context is cheap: one directory. Going back the other direction is cheap too. The expensive migration is flat-layers → context-first (moves every file), so decide by *expected* size, not today's size.
+
+**2a. No intra-layer scatter.** One aggregate is one module inside `models/`. Pressure to split `models/checkout/merch.ts` + `models/checkout/offers.ts` signals a missing aggregate or boundary — the fix is a context split, not file splitting. Applies equally in `application/`, `service_objects/`, and frontend features.
+
+**3. The layer-first trade-off (why context-first).** Flat layers scatter one concept across four folders. Fine when the service has one context; otherwise it's the smell: unrelated rules change together in `models/`, PRs cross contexts, deletion requires hunting. The scatter view is the trigger for rule 2.
+
+**4. Test collocation.** Tests live beside the code they test (`*.test.*` next to the module, or a `__tests__/` sibling) — never a global `tests/` tree. Excluded from the build graph per rule 0.
+
+**5. shared/ admission rule (frontend).** A primitive enters `shared/` only when: 2+ features use it AND it names exactly one concept AND its surface is deliberate and tested. Otherwise it stays in the feature.
+
+**6. Folder smells.** Holding folders (`core/`, `misc/`, `lib/`, `common/`, a folder with one file that exists to hold others) are `FIX`-level violations. The grab-bag ban applies everywhere in the tree, including `infrastructure/`.
+
+**7. Monorepo extraction triggers.** Extract a package when: a separate team owns it, it deploys separately, or it runs on a different stack. Until then, a directory — not a package.
 
 ## Working style
 
@@ -182,19 +232,22 @@ Does it wire a protocol to the app (HTTP route, CLI command, event handler)?
   -> Transport. Calls a use case. No business logic, no direct adapter access.
 
 Is it one business transaction (place order, approve transfer)?
-  -> Use case, in application/. Orchestrates domain + ports. One per transaction.
+  -> Use case, in application/. Orchestrates models + service_objects + ports.
 
 Is it a business rule a domain concept could carry (compute, validate, decide)?
-  -> Domain: the entity / value object / aggregate that owns the words. Not in a service.
+  -> models/: the entity / value object / aggregate that owns the words.
+
+Is it a rule spanning aggregates (cross-boundary invariant, multi-aggregate transaction)?
+  -> service_objects/: domain service. Not inside one model, not a grab-bag.
 
 Does another aggregate need to react to something that happened in a different aggregate?
   -> Domain event, not a call across the boundary.
 
 Is it a collection-like interface over a data store?
-  -> Port in the domain, repository adapter outside (driven).
+  -> Port declared by models/application; repository implemented in infrastructure (driven).
 
 Does it convert an external system's interface to yours?
-  -> Driven adapter implementing a port. Anti-corruption lives here.
+  -> Driven adapter in infrastructure, implementing a port. Anti-corruption lives here.
 ```
 
 **Frontend — where does it live?**
@@ -243,18 +296,21 @@ utils/
 db.ts
   raw queries
 
-TARGET (hexagonal)
+TARGET (hexagonal, per context)
 
-transport/
-  routes ... call one use case each, no logic
-application/
-  use-cases/
-    checkout ... one per transaction; calls domain + ports
-domain/
-  order.ts, money/ ... own the rules, declare ports
-  pure: imports nothing outward
-adapters/ (driven)
-  order-repo.ts ... collection-like, wraps storage
+src/checkout/
+  transport/
+    routes ... call one use case each, no logic
+  application/
+    checkout.ts ... one per transaction; calls models + service_objects + ports
+  models/
+    order.ts, money/ ... own the rules, declare ports
+    pure: imports nothing outward
+  service_objects/
+    pricing.ts ... cross-aggregate rules
+  infrastructure/
+    order-repo.ts ... collection-like, wraps storage
+src/infrastructure/          shared-kernel plumbing only
 ```
 
 ### 2. Edge list + violation register
@@ -265,12 +321,12 @@ Every cross-module dependency as a row. This is the lossless form of a dependenc
 edges
   api.ts -> db.ts                    bypasses the use case (V1 FIX)
   service.ts -> utils.ts             rule belongs on the owning type (V2 FIX)
-  domain -> adapters                 must point inward (V3 FIX)
+  models -> infrastructure           must point inward (V3 FIX)
 
 violations
   V1  FIX   api.ts -> db.ts          transport reaches into a driven adapter — route calls a use case instead
   V2  FIX   service.ts -> utils.ts   rule belongs on the owning domain type
-  V3  FIX   domain -> adapters       declare a port; adapters implement it
+  V3  FIX   models -> infrastructure declare a port; infrastructure implements it
 ```
 
 ```
@@ -311,12 +367,16 @@ Coupling:
 - [ ] Do dependencies point inward (backend) / toward stable code (frontend)?
 
 Backend layering (hexagonal):
-- [ ] Does domain import nothing outward — no transport, app, adapter imports?
-- [ ] Are ports declared by domain/application, with driven adapters implementing them?
+- [ ] Does models/ import nothing outward — no transport, application, service_objects, infrastructure imports?
+- [ ] Are ports declared by models/application, with infrastructure implementing them?
 - [ ] Is each use case one business transaction, in the application layer?
+- [ ] Do cross-aggregate rules live in service_objects/, not inside one model or a service grab-bag?
 - [ ] Are transport routes logic-free, calling use cases only?
 - [ ] Are repositories collection-like and flowing through a port?
-- [ ] Do adapters return domain types, never raw rows or SDK types?
+- [ ] Do infrastructure adapters return domain types, never raw rows or SDK types?
+- [ ] Is the backend context-first (rule 2), or flat-layers only under the single-context exception?
+- [ ] Is src/infrastructure/ shared-kernel plumbing only — no context repos, no grab-bag?
+- [ ] Is all build-required production code under src/ (rule 0), iac/ outside src/?
 
 Frontend layering (feature-based):
 - [ ] Is each business capability its own `features/<capability>/`?
@@ -362,7 +422,7 @@ Size and shape:
 | Grab-bag utils | `utils.ts`, `lib.ts`, `helpers.ts`, `common/` with unrelated contents | Name the concept; move each function onto its owning type or a cohesive named module. |
 | Anemic domain model | Entities are data bags; all rules in services | Move rules into entities / value objects; services only orchestrate. |
 | Misplaced logic | A name needs a qualifier pointing at another module | Put the logic where the name naturally belongs. |
-| Directional violation | A module imports against the allowed direction (e.g. domain → adapters) | Invert; declare a port the other side implements. |
+| Directional violation | A module imports against the allowed direction (e.g. models → infrastructure) | Invert; declare a port the other side implements. |
 | Leaky abstraction | Callers know about DB or API internals. | Adapter returns domain types, not external shapes. |
 | I/O in logic | Business rules call fetch or db directly. | Move I/O to a driven adapter; pass data in. |
 | Logic in transport | HTTP routes contain business rules. | Route calls one use case; move rules to domain/use case. |
