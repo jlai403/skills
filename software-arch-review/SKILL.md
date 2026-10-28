@@ -1,13 +1,13 @@
 ---
 name: software-arch-review
-description: Software architecture review for high cohesion, low coupling, and enforced layering. Backend follows clean/hexagonal architecture (context-first folders: application, models, service_objects, infrastructure) with DDD principles when applicable; terraform lives under iac/. Frontend is feature-based. Both must be modular. Use during the design phase, before implementation, or when refactoring. Covers module boundaries, domain modeling, aggregate design, naming, object shape, comments, decision framework for where code belongs, and visual review with structure outlines, edge lists, and a violation register.
+description: Software architecture review for high cohesion, low coupling, and enforced layering. Backend follows clean/hexagonal architecture (context-first folders: application, models, service_objects, infrastructure) with DDD principles when applicable; terraform lives under iac/. Frontend is feature-based. Both must be modular. The review runs in digestable phases: inventory → violation walkthrough (one decision per exchange) → target → migration; Mermaid available for PRs on request. Covers module boundaries, domain modeling, aggregate design, naming, object shape, comments, decision framework for where code belongs, and visual review with structure outlines, edge lists, and a violation register.
 ---
 
 # Software architecture review
 
 ## When to use
 
-Invoked during the design phase, whether proposing new code or reviewing existing code. Focuses on high cohesion, low coupling, and enforced layering. Produces ASCII diagrams for visual iteration.
+Invoked during the design phase, whether proposing new code or reviewing existing code. Focuses on high cohesion, low coupling, and enforced layering. Produces structure outlines for visual iteration.
 
 Two modes:
 - **Greenfield**: designing a new feature or system from scratch
@@ -136,17 +136,23 @@ iac/                        terraform at repo root; never imported by src/,
 
 **7. Monorepo extraction triggers.** Extract a package when: a separate team owns it, it deploys separately, or it runs on a different stack. Until then, a directory — not a package.
 
-## Working style
+## Review phases
 
-- Lead with the diagram. Show the ASCII drawing first, then one sentence about what it reveals.
-- One topic at a time. Walk through a single issue or decision before moving to the next.
-- Short sentences. State the problem and the proposed fix in two or three lines.
-- No background. Do not recap principles or restate what the diagram shows.
-- Stop after each diagram. Wait for the user to agree or redirect before continuing.
-- If there are many issues, list them as a numbered set. Work through them one by one.
-- Default to silence on things that are correct. Only speak up about what is wrong or needs a decision.
+Run the review as sequential phases. Each exchange carries **at most one decision** — a message requiring three answers is a bug: split the message, not the phase. Carried by the diagram: lead with the outline, one sentence on what it reveals; short sentences; no background; default to silence on what is correct.
 
-Example of how to present one issue:
+### Phase 0 — Scope (skip when obvious)
+
+One question, at most: what unit are we reviewing — whole repo, one context, one feature?
+
+### Phase 1 — Inventory
+
+Present the current-state outlines and edge list with `FIX`/`Q` marks. Description only: zero questions, zero fixes, zero opinions. Judging an outline before it is agreed accurate poisons the register with wrong facts.
+
+Ends with one line: "accurate? anything missing?"
+
+### Phase 2 — Walkthrough
+
+Walk the register one violation per exchange:
 
 ```
 V1  FIX   route -> repository (bypasses use case)
@@ -155,7 +161,23 @@ The transport layer reaches straight into a driven adapter.
 Move the call into a use case and let the route depend on it.
 ```
 
-That is the whole message. No preamble, no summary of the layer diagram, no restating the coupling rules.
+That is the whole message. No preamble, no summary of the layer diagram, no restating the coupling rules. The user disposes: fix now, argue away, or park. Never two ids in one message, never batched questions — the proposed fix *is* the question.
+
+### Phase 3 — Target
+
+Redraw the outline(s) with dispositions applied, showing remaining open ids and parked ids with their status — parked ids are never silently dropped. One confirm before anything more.
+
+### Phase 4 — Migration (brownfield only)
+
+Ordered incremental steps, smallest risk first. Each step: the ids it disposes, what could break, what to test after it. One confirm before code is touched. Greenfield skips to Phase 5.
+
+### Phase 5 — Package (only on request)
+
+Shareable Mermaid block for a PR plus final register state. Nothing here is produced unprompted.
+
+### The register is the whole picture
+
+The register (id / signal / fix, one line each) is the only artifact that ever shows all violations at once, and it stays compact. Outlines, edges, and migration steps are views onto it, not independent pictures.
 
 ## Naming conventions
 
@@ -343,15 +365,11 @@ violations
 
 ### How to iterate
 
-1. Outline current state (brownfield) or proposed target (greenfield).
-2. Mark every violation `FIX`/`Q` inline and log it in the register with id, signal, and fix.
-3. Walk the register one violation at a time (working style above). Disposition per id: fix now, argue away, or park.
-4. Redraw the target outline. Confirm it before any code changes.
-5. Migration path (brownfield only): incremental steps, each leaving the codebase working, citing the ids it disposes.
+The review phases above define the flow (inventory → walkthrough → target → migration). What this section adds: outlines carry one stack or one bounded context per view (depth cap ~3 levels — flatten deeper structure into focused outlines); greenfield proposes target only, brownfield shows current then target.
 
-### Shareable diagram (optional)
+### Shareable diagram (Phase 5)
 
-For a PR or notes: emit one Mermaid block per stack (a compact flowchart). GitHub renders it in-band; headless elsewhere it degrades to readable code. Small only — one diagram per stack, never a panopticon. The outline above remains the artifact of record in-session.
+Only on request, never mid-review. For a PR or notes: emit one Mermaid block per stack (a compact flowchart). GitHub renders it in-band; headless elsewhere it degrades to readable code. Small only — one diagram per stack, never a panopticon. The outline remains the artifact of record in-session.
 
 ## Architecture review checklist
 
@@ -438,12 +456,16 @@ Size and shape:
 
 ## Output format
 
-1. Current state (brownfield) or proposed state (greenfield): structure outlines with `FIX`/`Q` markers inline
-2. Violation register: every `V#` with signal and fix, one line each
-3. Target structure: outline graphs of proposed modules, hexagonal/feature boundaries, dependency edges
-4. Migration path (brownfield only): incremental steps, each leaving the codebase working, citing the `V#` it disposes
-5. Risk assessment: what could break, what to test after each step
-6. Shareable diagram (optional, on request): Mermaid blocks for PRs/notes
+What each phase emits — nothing arrives all at once:
+
+| Phase | Emits |
+|---|---|
+| 0 Scope | one question or "reviewing X" |
+| 1 Inventory | current outlines + edge list with FIX/Q marks + "accurate?" |
+| 2 Walkthrough | one V# per exchange: signal, rule broken, proposed fix |
+| 3 Target | target outlines; open + parked ids with status |
+| 4 Migration | ordered steps with V# disposed, risk, and test after each |
+| 5 Package (on request) | Mermaid block for PR + final register |
 
 ## Refactoring triggers
 
