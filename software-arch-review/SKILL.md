@@ -1,6 +1,6 @@
 ---
 name: software-arch-review
-description: Software architecture review. Use when designing structure for new code, reviewing the structure of existing code, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, services, infrastructure; DDD when applicable), feature-based frontend, and modularity. The review runs in phases, one decision per exchange.
+description: Software architecture review. Use when designing structure for new code, reviewing the structure of existing code, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, services, infrastructure; DDD when applicable), feature-based frontend, and modularity. Runs as a suggestion loop, one suggestion per exchange until decided.
 ---
 
 # Software architecture review
@@ -160,9 +160,9 @@ src/checkout/          (small context — every role has ≤1 file)
 
 **7. Monorepo extraction triggers.** Extract a package when a separate team owns it, it deploys separately, or it runs on a different stack. Until then, a directory, not a package.
 
-## Review phases
+## Review flow
 
-Run the review one phase at a time. One exchange carries one decision; if a message needs three answers, split the message, not the phase. Lead with the outline plus one sentence on what it reveals. Short sentences, no background, silence on what is correct.
+Inventory first, then one suggestion per exchange, with as many exchanges as that suggestion needs. Lead with the outline plus one sentence on what it reveals. Short sentences, no background, silence on what is correct.
 
 ### Phase 0: Scope (skip when obvious)
 
@@ -174,9 +174,9 @@ Present the current-state outlines and edge list with `FIX`/`Q` marks. Describe 
 
 Ends with one line: "accurate? anything missing?"
 
-### Phase 2: Walkthrough
+### Phase 2: Suggestion loop
 
-Walk the register one violation per exchange:
+The review proper. One suggestion per exchange:
 
 ```
 V1  FIX   route -> repository (bypasses use case)
@@ -185,19 +185,16 @@ The transport layer reaches straight into a driven adapter.
 Move the call into a use case and let the route depend on it.
 ```
 
-That is the whole message. No preamble, no summary of the layer diagram, no restated coupling rules. The user disposes: fix now, argue away, or park. Never two ids in one message; the proposed fix is the question.
+That is the whole message. No preamble, no summary of the layer diagram, no restated coupling rules.
 
-### Phase 3: Target
+- The loop within one suggestion is fluid: debate, redraw the local outline, compare alternatives, sketch code, whatever the suggestion needs. No fixed number of exchanges; an iteration ends when the suggestion has a disposition.
+- Dispositions: fix now, argue away (record the reason), park (deferred, record the reason).
+- A decision reshapes the queue downstream. Fixing one id may make another disappear (mark it `superseded`), or reveal an unlisted violation (add a row). Both edits land in the register at decision time. A suggestion is never decided in isolation when its outcome changes what later suggestions mean.
+- Hard rules stay: never two ids in one message, never batched questions. The proposed fix is the question.
 
-Redraw the outlines with dispositions applied. Show remaining open ids, and parked ids with their status; parked ids are never silently dropped. One confirm.
+### Phase 3: Wrap-up
 
-### Phase 4: Migration (brownfield only)
-
-Ordered incremental steps, smallest risk first. Each step lists the ids it disposes, what could break, and what to test after it. One confirm before code is touched. Greenfield skips to Phase 5.
-
-### Phase 5: Package (only on request)
-
-A shareable Mermaid block for a PR, one per stack (a compact flowchart), plus the final register state. GitHub renders it; elsewhere it degrades to readable code. Never one diagram of everything; the outline stays the in-session source of truth.
+Final outlines and edge list reflecting all decisions. The register shows each id's status: `fix`, `dropped`, `parked`, `superseded`. Nothing silently vanishes. Brownfield: ordered migration steps, smallest risk first, each citing the ids it disposes, what could break, and what to test after it. On request: one Mermaid block per stack for the PR.
 
 ### Violation register
 
@@ -319,7 +316,7 @@ Structure is drawn as plain text: outline graphs for shape, edge lists for depen
 
 - `FIX` breaks a stated rule of the prescription: wrong layer, wrong dependency direction, leaked internals, a grab-bag module. Non-negotiable; it must appear in the migration path.
 - `Q` is a judgement call worth discussing: a possible grab-bag, a boundary question, a doubtful `shared/` candidate. May be argued away; must be surfaced.
-- `V#` is the stable id of a row in the violation register, cited by the walkthrough and the migration path.
+- `V#` is the stable id of a row in the violation register, cited by the suggestion loop and the wrap-up migration steps.
 
 ### 1. Structure outlines
 
@@ -475,10 +472,8 @@ What each phase emits. Nothing arrives all at once:
 |---|---|
 | 0 Scope | one question, or "reviewing X" |
 | 1 Inventory | current outlines + edge list with FIX/Q marks + "accurate?" |
-| 2 Walkthrough | one V# per exchange: signal, rule broken, proposed fix |
-| 3 Target | target outlines; open + parked ids with status |
-| 4 Migration | ordered steps with V# disposed, risk, and test after each |
-| 5 Package (on request) | Mermaid block for PR + final register |
+| 2 Suggestion loop | one V# per exchange: signal, rule broken, proposed fix; iterate as needed |
+| 3 Wrap-up | final outline; register with status per id (fix/dropped/parked/superseded); brownfield migration steps; Mermaid on request |
 
 ## Refactoring triggers
 
