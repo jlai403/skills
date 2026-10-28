@@ -1,19 +1,19 @@
 ---
 name: software-arch-review
-description: Software architecture review — use when designing a new structure, reviewing existing structure, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, services, infrastructure; DDD when applicable), feature-based frontend, and modularity. Runs as a phased review (one decision per exchange).
+description: Software architecture review. Use when designing structure for new code, reviewing the structure of existing code, refactoring, or deciding where code belongs. Enforces clean/hexagonal backend (context-first: application, models, services, infrastructure; DDD when applicable), feature-based frontend, and modularity. The review runs in phases, one decision per exchange.
 ---
 
 # Software architecture review
 
 ## When to use
 
-**Applicable when:** designing structure for new code, reviewing the structure of existing code, refactoring (split/merge modules, wrong-layer logic), deciding where code belongs, or answering any question of the form "why does X import Y".
+**Applicable when:** designing structure for new code, reviewing the structure of existing code, refactoring (split or merge modules, wrong-layer logic), deciding where code belongs, or answering any question of the form "why does X import Y".
 
 Two modes:
 - **Greenfield**: designing a new feature or system from scratch
 - **Brownfield**: reviewing existing code that needs restructuring
 
-Companion skills: `domain-modeling` defines what the domain concepts are (glossary, ADRs); this skill enforces where those concepts live and what they may import (aggregates as boundaries, value objects at construction, ACL placement). Reference domain-modeling's output — do not re-generate glossaries or ADRs here.
+Companion skills: `domain-modeling` defines what the domain concepts are, in the glossary and ADRs. This skill enforces where those concepts live and what they may import. Reference domain-modeling's output. Do not re-generate glossaries or ADRs here.
 
 ## Architecture prescriptions
 
@@ -21,7 +21,7 @@ One per stack. They are the target every review judges against.
 
 ### Backend: clean / hexagonal
 
-Role view (context-first folder shapes live in "Folder structure heuristics" below):
+Role view. Context-first folder shapes are in "Folder structure heuristics" below.
 
 ```
 transport/
@@ -47,9 +47,9 @@ infrastructure/
 ```
 
 - Dependencies point inward. Models import nothing from transport, application, services, or infrastructure.
-- Ports are declared by the models/application layer; driven adapters implement them from outside (dependency inversion).
-- Repositories are driven adapters — collection-like interfaces over storage (`get`, `add`, `save`, `delete`), not a separate bottom tier.
-- Adapter output is domain types, never raw DB rows or external SDK types (anti-corruption at the boundary).
+- Ports are declared by models and application. Driven adapters implement them from outside, so the dependency points inward. This is dependency inversion.
+- Repositories are driven adapters over storage, collection-like: `get`, `add`, `save`, `delete`. Not a separate bottom tier.
+- Adapter output is domain types, never raw DB rows or external SDK types. Translating there is the anti-corruption boundary.
 
 ### Frontend: feature-based, modular
 
@@ -68,35 +68,33 @@ shared/
   NOT a dumping ground — no feature logic
 ```
 
-- A feature owns everything about one business capability. Features do not import each other's internals — only an exposed public interface.
-- Cross-feature requests go through shared contracts/hooks, not deep imports.
-- `shared/` only holds what genuinely serves multiple features and changes with them (or with everyone).
+- A feature owns everything about one business capability. Features do not import each other's internals, only an exposed public interface.
+- Cross-feature requests go through shared contracts or hooks, not deep imports.
+- `shared/` only holds what serves multiple features, and it changes with them, not with one of them.
 
 ### Modularity (both stacks)
 
-- A module is a named area of change, knowable in one sentence.
-- A packed `features/`, `services/` or similar must be split by the same rule as an oversized module.
-- Dependencies stay acyclic. Within a backend layer, within a frontend shared directory.
+A module has one job, nameable in one sentence, and one reason to change. The same test applies one level up: a packed `features/` or `services/` splits like an oversized module. Dependencies stay acyclic: across backend layers, across frontend features, across shared directories.
 
 ### DDD (when applicable)
 
 Apply when the code encodes real business rules. Skip for plumbing-heavy code.
 
-- **Entities vs value objects.** An entity has identity that persists across state changes. A value object is immutable and interchangeable — prefer value objects; they make invariants enforceable at construction.
-- **Aggregate as consistency boundary.** One aggregate root per transaction; invariants are enforced inside the aggregate, not by services re-checking from outside.
-- **Domain events.** When one business fact must reach other aggregates that share no boundary, emit an event rather than a direct call.
+- **Entities vs value objects.** An entity has identity that persists across state changes. A value object is immutable and interchangeable. Prefer value objects.
+- **Aggregate consistency.** One aggregate root per transaction. Its invariants live inside the aggregate, not re-checked in services.
+- **Domain events.** When one business fact must reach aggregates that share no boundary, emit an event rather than a direct call.
 - **Anti-corruption layer.** When an external system's model conflicts with yours, translate at the adapter boundary. External types never leak past it.
 - **Ubiquitous language.** Names come from the business domain, not the code structure. If the business says "roster," the type is `Roster`, not `PlayerList`.
 
 ### YAGNI
 
-Do not build for hypothetical needs. Delete unused callers. Do not add endpoints nobody calls. Do not refactor for purity alone — accept coupling that buys compile-time safety.
+Do not build for hypothetical needs. Delete unused callers. Do not add endpoints nobody calls. Do not refactor for purity alone. Accept coupling that buys compile-time safety.
 
 ### Folder structure heuristics
 
 **0. `src/` rule.** All production code required for build lives under `src/`. Tests, scripts, fixtures, and docs are never in the build graph. If the build config is fed code from outside `src/`, the layout or the config is wrong.
 
-**1. Framework-native first.** Boundaries are non-negotiable; directory names are not. Map the shapes below onto the framework's own conventions rather than fighting them. On brownfield repos, keep framework-native folder names and enforce the boundaries instead — no rename-for-purity migrations unless they also fix a `FIX`-level violation.
+**1. Framework-native first.** Boundaries are non-negotiable; directory names are not. Map the shapes below onto the framework's own conventions rather than fighting them. On brownfield repos, keep framework-native folder names and enforce the boundaries instead. Do not rename for purity unless the rename also fixes a `FIX`-level violation.
 
 **2. Context-first by default:**
 
@@ -121,10 +119,10 @@ iac/                        terraform at repo root; never imported by src/,
                             never under src/
 ```
 
-- Contexts import other contexts only via a public index or domain events — never each other's internals.
-- Splitting a context is cheap: one directory. Going back the other direction is cheap too. The expensive migration is flat-layers → context-first (moves every file), so decide by *expected* size, not today's size.
+- Contexts import other contexts only via a public index or domain events, never each other's internals.
+- Splitting a context is cheap: one directory. Going back the other direction is cheap too. The expensive migration is flat layers to context-first, because it moves every file, so decide by expected size, not today's size.
 
-**2a. No intra-layer scatter.** One aggregate is one module inside `models/`. Pressure to split `models/checkout/merch.ts` + `models/checkout/offers.ts` signals a missing aggregate or boundary — the fix is a context split, not file splitting. Applies equally in `application/`, `services/`, and frontend features.
+**2a. No intra-layer scatter.** One aggregate is one module inside `models/`. Pressure to split `models/checkout/merch.ts` plus `models/checkout/offers.ts` signals a missing aggregate or boundary, and the fix is a context split, not file splitting. Applies equally in `application/`, `services/`, and frontend features.
 
 **2b. Hoist rule.** A folder exists to hold more than one standing thing at the same level. When a layer role holds exactly one file in a context, hoist it to context root and put the role in the name:
 
@@ -141,42 +139,42 @@ src/checkout/          (small context — every role has ≤1 file)
   grows into per-role folders when a role crosses one file.
 ```
 
-- Mixed granularity is normal; mixed naming is not. Within one context, a role is either always a folder or always a suffixed root file — never `order-repo.ts` beside a sibling's `infrastructure/payment-repo.ts`.
-- Growth is mechanical: cross the threshold, mkdir + move one file, nothing else changes.
-- Role vs mechanism naming: `transport/` is the role (protocol wiring, no logic); mechanism names like `routes/` belong to leaves or to framework-native mapping (rule 1) — an HTTP-only service may spell the role `routes/`.
-- The context folder always exists, even when the whole context is one file (`src/checkout/checkout.ts`) — it is a boundary, not convenienced away.
+- Mixed granularity is normal; mixed naming is not. Within one context, a role is either always a folder or always a suffixed root file, never `order-repo.ts` beside a sibling's `infrastructure/payment-repo.ts`.
+- Growth is mechanical: cross the threshold, mkdir, move one file, and nothing else changes.
+- Role vs mechanism naming: `transport/` is the role, protocol wiring with no logic. Mechanism names like `routes/` belong to leaves or to framework-native mapping (rule 1); an HTTP-only service may spell the role `routes/`.
+- The context folder always exists, even when the whole context is one file (`src/checkout/checkout.ts`). It marks a boundary, not a style choice.
 - The role suffix in the symbol makes layers greppable: a grep for `*-repo` finds every driven adapter of a concept.
 
-**2c. File name = primary symbol.** A file exports exactly one primary class/function/object; the file is named after it in the stack's casing: `Order` → `order.ts`, `OrderRepo` → `order-repo.ts`, `PricingService` → `pricing-service.ts`, `checkout()` → `checkout.ts`.
+**2c. File name = primary symbol.** A file exports exactly one primary class, function, or object, and the file is named after it in the stack's casing: `Order` → `order.ts`, `OrderRepo` → `order-repo.ts`, `PricingService` → `pricing-service.ts`, `checkout()` → `checkout.ts`.
 
-- Exceptions: `index.ts` (the public interface barrel), `*.test.ts` collocations, and 2b's role-hoisted wiring files (`transport.ts` mounts routes — there is no `Transport` class, and inventing one is worse).
-- A file whose export is "everything in the file" either hides a missing type or a missing concept — the same diagnostic as the grab-bag rule, at file granularity.
+- Exceptions: `index.ts` (the public interface barrel), `*.test.ts` collocations, and 2b's role-hoisted wiring files (`transport.ts` mounts routes; there is no `Transport` class, and inventing one is worse).
+- A file whose export is "everything in the file" hides a missing type or a missing concept. The same diagnostic as the grab-bag rule, at file granularity.
 
-**3. The layer-first trade-off (why context-first).** Flat layers scatter one concept across four folders. Fine when the service has one context; otherwise it's the smell: unrelated rules change together in `models/`, PRs cross contexts, deletion requires hunting. The scatter view is the trigger for rule 2.
+**3. The layer-first trade-off (why context-first).** Flat layers scatter one concept across four folders. Fine when the service has one context; otherwise the smell is concrete: unrelated rules change together in `models/`, PRs cross contexts, deleting anything means hunting. That scatter is the trigger for rule 2.
 
-**4. Test collocation.** Tests live beside the code they test (`*.test.*` next to the module, or a `__tests__/` sibling) — never a global `tests/` tree. Excluded from the build graph per rule 0.
+**4. Test collocation.** Tests live beside the code they test (`*.test.*` next to the module, or a `__tests__/` sibling), never a global `tests/` tree. They are excluded from the build graph per rule 0.
 
-**5. shared/ admission rule (frontend).** A primitive enters `shared/` only when: 2+ features use it AND it names exactly one concept AND its surface is deliberate and tested. Otherwise it stays in the feature.
+**5. shared/ admission rule (frontend).** A primitive enters `shared/` only when all three hold: at least two features use it, it names exactly one concept, and its surface is deliberate and tested. Otherwise it stays in the feature.
 
 **6. Folder smells.** Holding folders (`core/`, `misc/`, `lib/`, `common/`, a folder with one file that exists to hold others) are `FIX`-level violations. One-child folders are resolved by the hoist rule (2b). The grab-bag ban applies everywhere in the tree, including `infrastructure/`.
 
-**7. Monorepo extraction triggers.** Extract a package when: a separate team owns it, it deploys separately, or it runs on a different stack. Until then, a directory — not a package.
+**7. Monorepo extraction triggers.** Extract a package when a separate team owns it, it deploys separately, or it runs on a different stack. Until then, a directory, not a package.
 
 ## Review phases
 
-Run the review as sequential phases. Each exchange carries **at most one decision** — a message requiring three answers is a bug: split the message, not the phase. Carried by the diagram: lead with the outline, one sentence on what it reveals; short sentences; no background; default to silence on what is correct.
+Run the review one phase at a time. One exchange carries one decision; if a message needs three answers, split the message, not the phase. Lead with the outline plus one sentence on what it reveals. Short sentences, no background, silence on what is correct.
 
-### Phase 0 — Scope (skip when obvious)
+### Phase 0: Scope (skip when obvious)
 
-One question, at most: what unit are we reviewing — whole repo, one context, one feature?
+One question, at most: what unit is under review, the whole repo, one context, or one feature?
 
-### Phase 1 — Inventory
+### Phase 1: Inventory
 
-Present the current-state outlines and edge list with `FIX`/`Q` marks. Description only: zero questions, zero fixes, zero opinions. Judging an outline before it is agreed accurate poisons the register with wrong facts.
+Present the current-state outlines and edge list with `FIX`/`Q` marks. Describe only: no questions, no fixes, no opinions. Judge nothing until the outline is agreed accurate; wrong facts here become wrong rows in the register.
 
 Ends with one line: "accurate? anything missing?"
 
-### Phase 2 — Walkthrough
+### Phase 2: Walkthrough
 
 Walk the register one violation per exchange:
 
@@ -187,23 +185,23 @@ The transport layer reaches straight into a driven adapter.
 Move the call into a use case and let the route depend on it.
 ```
 
-That is the whole message. No preamble, no summary of the layer diagram, no restating the coupling rules. The user disposes: fix now, argue away, or park. Never two ids in one message, never batched questions — the proposed fix *is* the question.
+That is the whole message. No preamble, no summary of the layer diagram, no restated coupling rules. The user disposes: fix now, argue away, or park. Never two ids in one message; the proposed fix is the question.
 
-### Phase 3 — Target
+### Phase 3: Target
 
-Redraw the outline(s) with dispositions applied, showing remaining open ids and parked ids with their status — parked ids are never silently dropped. One confirm before anything more.
+Redraw the outlines with dispositions applied. Show remaining open ids, and parked ids with their status; parked ids are never silently dropped. One confirm.
 
-### Phase 4 — Migration (brownfield only)
+### Phase 4: Migration (brownfield only)
 
-Ordered incremental steps, smallest risk first. Each step: the ids it disposes, what could break, what to test after it. One confirm before code is touched. Greenfield skips to Phase 5.
+Ordered incremental steps, smallest risk first. Each step lists the ids it disposes, what could break, and what to test after it. One confirm before code is touched. Greenfield skips to Phase 5.
 
-### Phase 5 — Package (only on request)
+### Phase 5: Package (only on request)
 
-Shareable Mermaid block for a PR plus final register state. Nothing here is produced unprompted.
+A shareable Mermaid block for a PR, one per stack (a compact flowchart), plus the final register state. GitHub renders it; elsewhere it degrades to readable code. Never one diagram of everything; the outline stays the in-session source of truth.
 
-### The register is the whole picture
+### Violation register
 
-The register (id / signal / fix, one line each) is the only artifact that ever shows all violations at once, and it stays compact. Outlines, edges, and migration steps are views onto it, not independent pictures.
+The register (one line per violation: id, signal, fix) is the only artifact that shows all violations at once, and it stays compact. Outlines, edges, and migration steps read from it; they are not separate lists.
 
 ## Naming conventions
 
@@ -225,34 +223,36 @@ Rules:
 - No abbreviations beyond domain standard. `id`, `url`, `db` are fine. `usr` and `cnt` are not.
 - No negatives. Prefer `isReady` over `isNotReady`, `isEmpty` over `isNotEmpty`.
 - No type encoding. `userList` becomes `users`. `countNumber` becomes `count`.
-- Function names describe the what, not the how. `fetchUser` not `fetchUserFromApiWithRetry`.
+- Function names describe the what, not the how. `fetchUser`, not `fetchUserFromApiWithRetry`.
 - If a name needs a qualifier, it may be in the wrong module. `calculateTrainingSamples` versus `calculateInferenceSample` is good. `calculateTrainingSamplesFromGameLogs` signals misplaced logic.
 
-## Module naming: objects and functions, never grab-bags
+## Module naming and placement
 
-Every function lives in a **named module whose vocabulary is domain concepts** (`money`, `pricing`, `roster`, `cart`) — never a generic `utils.ts` / `lib.ts` / `helpers.ts`.
+Every function lives in a module named for one domain concept (`money/`, `pricing/`, `roster/`, `cart/`), never in a generic grab-bag such as `utils.ts`, `lib.ts`, or `helpers.ts`.
 
-- An operation about a domain concept is a **method on the type that owns the concept** (entity, value object, aggregate). Prefer this. E.g. `invoice.totalDue()`, `subtotal.subtract(discount)`.
-- A free function is acceptable only inside a **named, cohesive module** (`money/`, `dates/`, `result/`) whose whole surface is one idea.
-- A `utils.ts` that has anything in it is evidence of a missing type. Name the concept and put the behavior there.
+- An operation about a domain concept is a method on the type that owns the concept (entity, value object, or aggregate). Prefer this: `invoice.totalDue()`, `subtotal.subtract(discount)`.
+- A free function is allowed only inside a module named for one cohesive idea (`money/`, `dates/`, `result/`), whose whole surface is that idea.
+- A `utils.ts` with anything in it is evidence of a missing type. Name the concept and put the behavior there.
+- If a placement question resolves to "a utils file," it is not resolved. The concept gets a name and a type.
+- Two modules importing the same helper does not prove the helper is shared. Confirm it is exactly one concept with one surface before moving it to `shared/`.
 
 ## Object shape design
 
-When designing or reviewing data objects, align on these decisions:
+When designing or reviewing data objects, align on these decisions. Each bolded lead names the decision; the body adds the detail.
 
-**Field ownership.** Each field belongs to exactly one object. If two objects have the same field, one should reference the other, not duplicate the data. Example: `orderId` lives on `Order`, not copied onto `Payment`.
+**Field ownership.** Two objects cannot hold the same data. When the need appears, one references the other instead of copying it: `orderId` lives on `Order`, not on `Payment`.
 
-**Composition vs reference.** Decide whether object A contains object B or references it by ID. Use composition when B has no meaning without A (a `LineItem` inside an `Order`). Use reference when B exists independently (a `User` referenced by `userId` on an `Order`).
+**Composition vs reference.** Decide whether object A contains object B or references it by id. Compose when B has no meaning without A (a `LineItem` inside an `Order`); reference when B exists independently (`userId` on an `Order`).
 
-**Nullability.** A field is required if the object cannot exist without it. It is optional if the object is valid without it. Avoid nullable fields that are only sometimes populated. That signals the object is doing two jobs.
+**Nullability.** A field is required when the object cannot be valid without it, and optional when it can. Avoid nullable fields that are only sometimes populated; that signals the object is doing two jobs.
 
-**Invariants.** State what must always be true about an object. Example: `Order.total` must equal the sum of its `lineItem` amounts. If an invariant spans multiple objects, name which object enforces it.
+**Invariants.** Name what must always be true of the object. `Order.total` must equal the sum of its `lineItem` amounts. If the invariant spans several objects, name the object that enforces it.
 
-**Field naming.** Same rules as function and variable naming: domain language, intention-revealing, no abbreviations beyond domain standard. A field named `isReady` is good. A flag named `flag1` is a problem.
+**Field naming.** Same rules as function and variable naming: domain language, intention-revealing, no abbreviations beyond domain standard. A field named `isReady` is good; a flag named `flag1` is a problem.
 
-**Object boundaries.** Ask: does this field describe the object, or does it describe a relationship to another object? If it is a relationship, it may belong in a separate object or a reference.
+**Object boundaries.** Ask whether a field describes the object, or describes its relationship to another object. A relationship may belong in a separate object or a reference.
 
-**Shape consistency.** If two objects represent the same concept (e.g., `User` in the API layer and `User` in the domain layer), their shapes should align. If they differ intentionally, name why.
+**Shape consistency.** The same concept in two places (a `User` in the API layer, a `User` in the domain layer) must have aligned shapes. Any difference needs a name and a reason.
 
 ## Comments policy
 
@@ -273,7 +273,7 @@ Test: if deleting the comment makes the code less clear, it is a bad comment. If
 
 ## Decision framework: where does code belong?
 
-**Backend first — which architecture role does it play?**
+**Backend first, by architecture role:**
 
 ```
 Does it wire a protocol to the app (HTTP route, CLI command, event handler)?
@@ -298,7 +298,7 @@ Does it convert an external system's interface to yours?
   -> Driven adapter in infrastructure, implementing a port. Anti-corruption lives here.
 ```
 
-**Frontend — where does it live?**
+**Frontend, by ownership:**
 
 ```
 Does it serve one business capability end to end (cart, checkout, session)?
@@ -311,23 +311,19 @@ Does it only describe one route's composition?
   -> Routes / screens. Compose features. Keep logic out.
 ```
 
-**Two hard rules before placement:**
-1. If the answer was "a utils file" → wrong. Find the type the concept belongs to, or name a cohesive module for the one idea.
-2. If two hosts would import it → check it is genuinely cross-cutting, not just lazily reachable.
-
 ## Visual architecture review
 
-Text-native everywhere: outline graphs for structure, edge lists for dependencies, a numbered register for violations. Plain ASCII only — headless sessions, terminal paste, grep, PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
+Structure is drawn as plain text: outline graphs for shape, edge lists for dependencies, a numbered register for violations. Plain ASCII only, because it must survive headless sessions, terminal paste, grep, and PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
 
 ### Markers
 
-- `FIX` — breaks a stated rule of the prescription (wrong layer, wrong dependency direction, leaked internals, grab-bag module). Non-negotiable; must appear in the migration path.
-- `Q` — judgement call worth discussing (possible grab-bag, boundary question, dubious shared/ candidate). May be argued away; must be surfaced.
-- `V#` — stable id in the violation register, cited by the walk-through and the migration path.
+- `FIX` breaks a stated rule of the prescription: wrong layer, wrong dependency direction, leaked internals, a grab-bag module. Non-negotiable; it must appear in the migration path.
+- `Q` is a judgement call worth discussing: a possible grab-bag, a boundary question, a doubtful `shared/` candidate. May be argued away; must be surfaced.
+- `V#` is the stable id of a row in the violation register, cited by the walkthrough and the migration path.
 
 ### 1. Structure outlines
 
-One outline per stack; one per bounded context or feature when the system is big. Depth cap ~3 levels — flatten deeper structure into focused outlines. Greenfield: proposed target only. Brownfield: current outline then target outline.
+One outline per stack, or one per bounded context or feature when the system is big. Depth cap of about 3 levels; flatten deeper structure into separate focused outlines. Greenfield shows the proposed target only; brownfield shows current state, then target state.
 
 ```
 BROWNFIELD (backend) — CURRENT
@@ -363,7 +359,7 @@ src/infrastructure/          shared-kernel plumbing only
 
 ### 2. Edge list + violation register
 
-Every cross-module dependency as a row. This is the lossless form of a dependency graph and scales to any size — an edge list of 30 edges is readable; a graph of 30 nodes is not.
+Every cross-module dependency becomes one row. This is the lossless form of a dependency graph, and it scales. Thirty rows are readable; a graph of thirty nodes is not.
 
 ```
 edges
@@ -389,20 +385,11 @@ violations
   V2  Q     shared/format.ts         cross-cutting, or move into cart/?
 ```
 
-### How to iterate
-
-The review phases above define the flow (inventory → walkthrough → target → migration). What this section adds: outlines carry one stack or one bounded context per view (depth cap ~3 levels — flatten deeper structure into focused outlines); greenfield proposes target only, brownfield shows current then target.
-
-### Shareable diagram (Phase 5)
-
-Only on request, never mid-review. For a PR or notes: emit one Mermaid block per stack (a compact flowchart). GitHub renders it in-band; headless elsewhere it degrades to readable code. Small only — one diagram per stack, never a panopticon. The outline remains the artifact of record in-session.
-
 ## Architecture review checklist
 
 Cohesion:
 - [ ] Can you name each module's purpose in one sentence?
 - [ ] Does each module change for only one reason?
-- [ ] Are related things together?
 
 Coupling:
 - [ ] Does module A import from module B's internals, or only its public interface?
@@ -411,7 +398,7 @@ Coupling:
 - [ ] Do dependencies point inward (backend) / toward stable code (frontend)?
 
 Backend layering (hexagonal):
-- [ ] Does models/ import nothing outward — no transport, application, services, infrastructure imports?
+- [ ] Does models/ import nothing outward: no transport, application, services, or infrastructure imports?
 - [ ] Are ports declared by models/application, with infrastructure implementing them?
 - [ ] Is each use case one business transaction, in the application layer?
 - [ ] Do cross-aggregate rules live in services/, not inside one model or a service grab-bag?
@@ -419,7 +406,7 @@ Backend layering (hexagonal):
 - [ ] Are repositories collection-like and flowing through a port?
 - [ ] Do infrastructure adapters return domain types, never raw rows or SDK types?
 - [ ] Is the backend context-first (rule 2), or flat-layers only under the single-context exception?
-- [ ] Is src/infrastructure/ shared-kernel plumbing only — no context repos, no grab-bag?
+- [ ] Is src/infrastructure/ shared-kernel plumbing only: no context repos, no grab-bag?
 - [ ] Is all build-required production code under src/ (rule 0), iac/ outside src/?
 
 Frontend layering (feature-based):
@@ -433,7 +420,7 @@ DDD (when applicable):
 - [ ] Are entity vs value-object decisions conscious (prefer value objects)?
 - [ ] Is there one aggregate root per transaction, enforcing invariants internally?
 - [ ] Do cross-aggregate reactions go through domain events, not direct calls?
-- [ ] Is an ACL at each external-system boundary — no external types leak in?
+- [ ] Is an ACL at each external-system boundary: no external types leak in?
 - [ ] Do names come from ubiquitous language, not code structure?
 
 Naming:
@@ -454,7 +441,7 @@ Object shape:
 
 Size and shape:
 - [ ] Any god modules (over 300 lines, many responsibilities)?
-- [ ] Any `utils`/`lib`/`helpers`/`common` grab-bags — should be a named concept?
+- [ ] Any `utils`/`lib`/`helpers`/`common` grab-bags that should be a named concept?
 - [ ] Any module imported by everything else?
 - [ ] Any duplicate logic across modules?
 
@@ -482,11 +469,11 @@ Size and shape:
 
 ## Output format
 
-What each phase emits — nothing arrives all at once:
+What each phase emits. Nothing arrives all at once:
 
 | Phase | Emits |
 |---|---|
-| 0 Scope | one question or "reviewing X" |
+| 0 Scope | one question, or "reviewing X" |
 | 1 Inventory | current outlines + edge list with FIX/Q marks + "accurate?" |
 | 2 Walkthrough | one V# per exchange: signal, rule broken, proposed fix |
 | 3 Target | target outlines; open + parked ids with status |
@@ -497,10 +484,10 @@ What each phase emits — nothing arrives all at once:
 
 Brownfield only:
 - A module that has grown past its original purpose
-- Two modules that always change together (merge) or one that changes for multiple reasons (split)
+- Two modules that always change together (merge), or one that changes for multiple reasons (split)
 - Business logic that cannot be tested without mocking I/O
 - A new requirement that would mean editing many files
-- Circular dependencies or everything imports everything
+- Circular dependencies, or everything imports everything
 - A name that needs a comment to explain it
 - A `utils`/`lib` module whose contents do not share one subject
 
@@ -510,4 +497,4 @@ Greenfield only:
 - A proposed name that needs a comment to explain it
 - A proposed module with more than one responsibility
 - A proposed object with duplicated fields or nullable-by-default fields
-- A proposed `utils`/`helpers` module as default resting place for a function
+- A proposed `utils`/`helpers` module as the default location for a function
