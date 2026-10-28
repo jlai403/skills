@@ -13,6 +13,8 @@ Two modes:
 - **Greenfield**: designing a new feature or system from scratch
 - **Brownfield**: reviewing existing code that needs restructuring
 
+Companion skills: `domain-modeling` defines what the domain concepts are (glossary, ADRs); this skill enforces where those concepts live and what they may import (aggregates as boundaries, value objects at construction, ACL placement). Reference domain-modeling's output — do not re-generate glossaries or ADRs here. This is not a code-review skill; behavioral diff review belongs to `requesting-code-review`.
+
 ## Architecture prescriptions
 
 One per stack. They are the target every review judges against.
