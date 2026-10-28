@@ -76,6 +76,15 @@ shared/
 
 A module has one job, nameable in one sentence, and one reason to change. The same test applies one level up: a packed `features/` or `services/` splits like an oversized module. Dependencies stay acyclic: across backend layers, across frontend features, across shared directories.
 
+### Testability (blackbox/integration, not unit)
+
+The architecture's job for testing: exercise the whole context through its public edges with real or fake dependencies, never mocks of the code under test.
+
+- **Every port needs a cheap second implementation.** A port exists so tests can substitute it: an in-memory fake, or a container-backed real one (ephemeral DB, throwaway broker). A port with only one possible implementation did not invert anything; it moved the wiring, not the power. That is a `FIX`-level finding, same rule as the directional violation smell.
+- **Prefer fakes and real dependencies to mocks.** A mock pins the shape of a collaborator's calls, so the test breaks on refactors that preserve behavior. A fake fulfills the port, so behavior-preserving refactors keep it green. A test builds its world with fakes and real runtimes; it never asserts call sequences on the system under test.
+- **Fixtures build state through the public edges.** Seed a scenario by driving use cases, public interfaces, or repository ports, not by writing rows into whatever table the current implementation has. Fixtures then survive refactors, and their setup reads as business language. A fixture that must reach past a boundary is reporting a leak.
+- **Fixture economics is a review criterion.** Building the scenario for one integration test should be a call site, not archaeology: a fixture/builder module per context (rule 2c applies; `order-scenario.ts` exporting `OrderScenario`). If constructing the fixture takes more lines than the test, the boundary is wrong or construction is hidden, and both are register rows.
+
 ### DDD (when applicable)
 
 Apply when the code encodes real business rules. Skip for plumbing-heavy code.
@@ -413,6 +422,8 @@ Backend layering (hexagonal):
 - [ ] Is the backend context-first (rule 2), or flat-layers only under the single-context exception?
 - [ ] Is src/infrastructure/ shared-kernel plumbing only: no context repos, no grab-bag?
 - [ ] Is all build-required production code under src/ (rule 0), iac/ outside src/?
+- [ ] Does every port have a second implementation that tests use (fake or container-backed)?
+- [ ] Can a blackbox test build any scenario via public edges and fixtures, without mocks of the system under test?
 
 Frontend layering (feature-based):
 - [ ] Is each business capability its own `features/<capability>/`?
@@ -472,6 +483,7 @@ Size and shape:
 | Nullable by default | Fields are optional when they should be required. | Make required fields non-nullable. |
 | Feature leakage (frontend) | Feature logic in `shared/`, or feature imports another feature's internals | Move into the owning feature; expose a deliberate public interface. |
 | Boundaries with no API | Cross-feature reach-ins | Define an explicit public surface per feature. |
+| Mock-required boundary | Blackbox behavior is untestable without asserting call order, or a port has no second implementation | Declare the port; provide a fake or container-backed implementation; test through the seam. |
 
 ## Output format
 
