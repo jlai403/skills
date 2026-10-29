@@ -1,6 +1,6 @@
 # Decisions (software-arch-review)
 
-Durable record of decisions for this skill, so sessions stop re-arguing settled questions. Repo-wide conventions live in `coding-preferences`. Dates are 2026.
+Durable record of decisions for this skill, so sessions stop re-arguing settled questions. Repo-wide conventions live in `coding-preferences`. Dates are 2026. Behavioral evals of this skill are covered under [Testing](#testing).
 
 ## Naming and folder vocabulary
 
@@ -31,6 +31,16 @@ Durable record of decisions for this skill, so sessions stop re-arguing settled 
 - Kept: park, superseded, grab-bag, numbered phases.
 - Killed: the register (-> suggestions list), walk the register (-> go through the suggestions), disposition (-> your decision), split-the-message phrasing (-> one question per message), argue away (-> explain why it is not a problem), FIX/Q/V# codes (-> bold SUGGESTION/QUESTION labels + plain numbers).
 - Voice principle: the skill's user-facing output addresses the person being reviewed; mechanics never surface; defined-at-first-use only (port, aggregate).
+
+## Testing
+
+| Decision | Status | Rationale |
+|---|---|---|
+| Live evals live in `tests/` at repo root, not inside the skill folder | decided (2026-10-29) | Tests at root never ship through `install.sh` (`npx skills add` copies the skill dir), and a fixture next to `SKILL.md` contaminates no-guidance controls. Pattern taken from pstack-claude and superpowers. |
+| `software-arch-review` gets behavioral evals now; `coding-preferences` documented-for-later | decided | The loop-skill's failure modes are observable output shapes; formatting rules have no bypass incentive and do not earn scenario cost. |
+| Auto-generated fixture + checked-in `expected-findings.md` manifest | decided | One seeded violation per SKILL.md rule plus clean parts as false-positive controls; the fixture is throwaway evidence, regenerated per cycle by `make-fixture.sh`. |
+| Scenario run protocol: fresh-context subagent per rep, no-guidance control first, 3 reps, manual transcript scoring | decided | Per superpowers writing-skills; treated as pre-release like pstack's live smoke tier, never CI. |
+| Static `skill-hygiene` test for mechanical checks (frontmatter colon trap, name match, 1024-char description cap, 6000-word ceiling, resolving backticked refs, skills.yml consistency) | decided | The mechanical half of pstack's two-tier pattern; no LLM cost, CI-runnable. Word ceiling is a 1.2x regression guard on software-arch-review (5100 words), not a style goal. |
 
 ## Boundaries with other skills
 

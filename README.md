@@ -56,6 +56,17 @@ Remove skills you deleted from `skills.yml`:
 npx skills@1.7.0 remove -g --all -y && rm -rf ~/.agents/skills/*
 ```
 
+## Testing
+
+```bash
+tests/skill-hygiene/test-skill-hygiene.sh   # static: frontmatter, size, refs; no LLM
+```
+
+Live evals for `software-arch-review` (scenario prompts, fixture generator,
+rubric, expected findings) live in `tests/software-arch-review/`. They run as
+subagent scenarios with a no-guidance control, manually scored against the
+rubric — run them before any SKILL.md edit ships.
+
 ## Uninstall
 
 ```bash
