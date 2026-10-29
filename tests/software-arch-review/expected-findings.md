@@ -21,7 +21,7 @@ order-service/
         customer.ts              V5   (one-child folder)
     services/pricing-service.ts  V7  (duplicates the transport rule)
     infrastructure/
-      db.ts                      clean (thin storage, where I/O belongs)
+      db.ts                      W1  (row cast at the adapter boundary)
       order-repo.ts              clean (adapter returns domain types via the port)
     utils/helpers.ts             V4
 ```
@@ -37,6 +37,7 @@ order-service/
 | V5 | `models/customer/customer.ts` alone in `models/customer/` | One-child folder / hoist (2b, 6) | Hoist to `models/customer.ts`; a folder marks a boundary and this one holds no second standing thing |
 | V6 | `models/order.ts: customerEmail: string \| null = null` | Nullable by default | Required field (every order has a customer) left nullable — and no code path assigns it; optional-by-default hides a missing invariant |
 | V7 | gold-discount logic in both `transport.ts` and `pricing-service.ts` | Duplicated logic | One rule, one owner (aggregate); bonus row — catching the duplication as part of V1 is fine, separate row is fine |
+| W1 | `db.ts` stores/returns `UnknownRows as unknown as Order` (cast, not translation) | Leaky abstraction — adapter returns domain types | Bonus row (authoring oversight, first corrected on 2026-10-29): the cast is a real finding; treat as sanctioned like V7, never as a false positive |
 
 ## Process findings (from absence, seeded by omission)
 
@@ -53,7 +54,11 @@ order-service/
 | `application/checkout.ts` | Proper use case: orchestrates model + port, no I/O |
 | `infrastructure/order-repo.ts` | Driven adapter implementing the declared port, domain types in/out |
 | `models/cart.ts` | Value types on the owning aggregate side |
-| `infrastructure/db.ts` | Thin storage mechanics under `infrastructure/`, where I/O belongs |
+
+Fixup note (2026-10-29): `db.ts` was originally listed clean, but its
+`as unknown as` cast into domain types is a genuine leaky-abstraction
+finding — first eval cycle caught it 5/6 runs. Reclassified as bonus W1,
+not a false positive.
 
 ## Scoring walk
 

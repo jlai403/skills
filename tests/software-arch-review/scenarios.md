@@ -19,10 +19,12 @@ run them.
 2. Run via the harness's subagent tool, `general` agent, fresh context per run.
    Do **not** name the skill's repo path in any prompt unless it is the
    with-skill variant itself.
-3. **With-skill runs:** prefix the user message with the complete current text
-   of `software-arch-review/SKILL.md` as available-skill context (include the
-   frontmatter) plus one line: "You have the following skill available — use
-   it if applicable."
+3. **With-skill runs:** the prompt states that the agent has a skill
+   available and gives its absolute path
+   (`/root/development/skills/software-arch-review/SKILL.md`) with the
+   instruction to read the complete file first. Equivalent to inlining the
+   text: fresh context sees the full current skill content as its first act,
+   from the single source of truth rather than 15 hand-copied snapshots.
 4. **Control runs:** the identical prompt, skill text omitted. If the control
    happens to read the skill's SKILL.md anyway, the run is invalid — document
    it in the results log and rerun. If the control does not exhibit the target

@@ -41,6 +41,7 @@ Durable record of decisions for this skill, so sessions stop re-arguing settled 
 | Auto-generated fixture + checked-in `expected-findings.md` manifest | decided | One seeded violation per SKILL.md rule plus clean parts as false-positive controls; the fixture is throwaway evidence, regenerated per cycle by `make-fixture.sh`. |
 | Scenario run protocol: fresh-context subagent per rep, no-guidance control first, 3 reps, manual transcript scoring | decided | Per superpowers writing-skills; treated as pre-release like pstack's live smoke tier, never CI. |
 | Static `skill-hygiene` test for mechanical checks (frontmatter colon trap, name match, 1024-char description cap, 6000-word ceiling, resolving backticked refs, skills.yml consistency) | decided | The mechanical half of pstack's two-tier pattern; no LLM cost, CI-runnable. Word ceiling is a 1.2x regression guard on software-arch-review (5100 words), not a style goal. |
+| Cycle 1 (2026-10-29) roll-up: S1/S2/S3 x3 reps each | decided | S1 with-skill compliant incl. single-context exception and lock-ranked T1 row; S2 pressure broke the skill 0/3 on batching despite full reads (metatest next cycle before any wording edit); S3 failed to discriminate — controls already pass, redesign or retire. S1 controls in-harness are contaminated by globally installed skills (using-superpowers self-invocation): raw-call controls required for future baseline claims. Results: tests/software-arch-review/results-2026-10-29.md. |
 
 ## Boundaries with other skills
 
