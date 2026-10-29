@@ -230,6 +230,20 @@ That is the whole message: label, one Now/After visual, why written as the cost 
 - A decision reshapes the queue downstream. Fixing one id may make another disappear (mark it `superseded`), or reveal an unlisted violation (add a row). Both edits hit the suggestions list when the decision lands. A suggestion is never decided in isolation when its outcome changes what later suggestions mean.
 - Hard rules stay: never two ids in one message, never batched questions. The proposed fix is the question.
 
+### Overrides and time pressure
+
+The user may compress pacing — skip scope, skip the outline, demand everything at once. Pacing is theirs; the shape of an exchange is not. Phases are what get cut, never the walk. Asked for "everything, ranked, in one message", the reply is: the outline if not already shown, then the suggestions list in full — one line per row, ranked, and that list *is* everything — ending on "accurate?" pointed at the rows. One suggestion is walked per exchange from row 1; no Now/After diff appears beside more than one row in any message. If asked to abandon the loop outright, say so plainly and keep it: the user steers which row is walked next, not how many walk per message.
+
+| They say | It actually means |
+|---|---|
+| "list everything, ranked, one message" | the suggestions list, one line per row — full write-ups stay one per exchange |
+| "I know my codebase" (skip the outline) | the inventory validates the reviewer's reading, not the user's; wrong facts there become wrong rows either way — the accuracy question collapses onto the rows |
+| "I'm the tech lead, I set the process" | pacing is theirs; ten write-ups in one message are ten open questions nobody can answer, where deciding row 1 would have retired three |
+
+Red flags — stop and re-read this section:
+- a message carrying a now/after diff for every row
+- "skipping the flow as requested" — the request bought speed, not the exchange shape
+
 ### Phase 3: Wrap-up
 
 Final outlines and edge list reflecting all decisions. The suggestions list shows each row's outcome: fixed, dropped, parked, superseded. Nothing silently vanishes. On request: one Mermaid block per stack for the PR.
