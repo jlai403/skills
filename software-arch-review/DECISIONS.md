@@ -1,8 +1,8 @@
-# Decisions
+# Decisions (software-arch-review)
 
-Durable record of decisions for the skills in this repo, so sessions stop re-arguing settled questions. Dates are 2026.
+Durable record of decisions for this skill, so sessions stop re-arguing settled questions. Repo-wide conventions live in `coding-preferences`. Dates are 2026.
 
-## Naming and folder vocabulary (software-arch-review)
+## Naming and folder vocabulary
 
 | Decision | Status | Rationale |
 |---|---|---|
