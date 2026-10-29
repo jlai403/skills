@@ -23,5 +23,5 @@ install:
     agents: [claude-code, opencode, gemini-cli]
 
   cursor/plugins:
-    skills: [unslop]
+    skills: [unslop, reflect]
     agents: [claude-code, opencode, gemini-cli]
