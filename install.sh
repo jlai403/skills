@@ -44,21 +44,37 @@ fi
 if ! command -v python3 &>/dev/null; then
   echo "Warning: python3 not found; skipping SKILL.md validation." >&2
 else
-  while IFS= read -r rel; do
-    name="${rel%/*}"
-    url="${SKILLS_RAW_URL%/}/${rel}"
-    tmp="$(mktemp)"
-    if curl -fsSL "$url" -o "$tmp"; then
-      python3 "$script_dir/scripts/lint_skills.py" "$tmp" || {
-        echo "SKILL.md $rel failed lint; fix it before installing. Aborting." >&2
-        rm -f "$tmp"; exit 1
-      }
-      echo "  lint ok: $rel"
-    else
-      echo "Warning: could not fetch $rel for linting." >&2
+  # In curl|bash mode there is no checkout, so fetch the linter from the same
+  # branch the config came from. Pin both to SKILLS_RAW_URL to avoid drift.
+  if [[ -f "$script_dir/scripts/lint_skills.py" ]]; then
+    LINT="$script_dir/scripts/lint_skills.py"
+  else
+    LINT="$(mktemp)"
+    if ! curl -fsSL "${SKILLS_RAW_URL%/}/scripts/lint_skills.py" -o "$LINT"; then
+      echo "Warning: could not fetch lint_skills.py; skipping validation." >&2
+      LINT=""
     fi
-    rm -f "$tmp"
-  done < <(yq -r '.install[] | .skills[] | . + "/SKILL.md"' "$SKILLS_FILE")
+  fi
+  if [[ -n "$LINT" ]]; then
+    lint_tmp=""
+    trap 'rm -f "$LINT" ${lint_tmp:+"$lint_tmp"}' EXIT
+    while IFS= read -r rel; do
+      name="${rel%/*}"
+      url="${SKILLS_RAW_URL%/}/${rel}"
+      lint_tmp="$(mktemp)"
+      if curl -fsSL "$url" -o "$lint_tmp"; then
+        python3 "$LINT" "$lint_tmp" || {
+          echo "SKILL.md $rel failed lint; fix it before installing. Aborting." >&2
+          exit 1
+        }
+        echo "  lint ok: $rel"
+      else
+        echo "Warning: could not fetch $rel for linting." >&2
+      fi
+      rm -f "$lint_tmp"
+      lint_tmp=""
+    done < <(yq -r '.install[] | .skills[] | . + "/SKILL.md"' "$SKILLS_FILE")
+  fi
 fi
 
 # Install from config. Re-running is safe: skills add overwrites existing
