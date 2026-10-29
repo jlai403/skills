@@ -46,3 +46,21 @@ Self-documenting names first. JSDoc only on public API. Comments explain non-obv
 ## Tests
 
 Nested: Suite > Group > Case. Guard integration tests with env var. Use concrete fixture values, not just `toBeDefined()`.
+
+## Git
+
+Commit with the repo's own git config; never pass `-c user.name`/`-c user.email` overrides. The global identity (with SSH signing) is the correct attribution in the user's repos; overriding it silently breaks signatures and misattributes commits. Machine attribution goes in `Co-authored-by:` trailers, never author swaps.
+
+## Tools
+
+- Edit escalation: after two failed exact-match edits in the same region, stop retrying. Read the exact bytes once (`cat -A`/`od -c`), then use `sd` for single-word global replaces, or a small Python script with anchored regexes for structural multi-line changes.
+- After bulk file moves or renames: find empty directories (`git` does not track them) and delete them; grep for stale references, placeholder files, and outdated docs left behind.
+- Plans prepared for a user's confirmation are applied only on confirmation. If a decision went unanswered, either hold it or state the chosen default prominently — never silently apply.
+
+## Authoring skills
+
+- A skill edit is not done until its consumer verifies it: run the installer, and confirm the skill appears in the session's available list. If the consumer clones from a remote, push the fix before re-testing.
+- SKILL.md frontmatter: any field whose value contains a colon must be quoted or a block scalar (`>-`). An unquoted scalar parses as a nested YAML mapping, and installers skip the skill without error.
+- After a skill's first real use, mine the session transcripts (OpenCode: sqlite `~/.local/share/opencode/opencode.db`, tables `session_v2` + `session_message`) for what the skill actually rendered, and iterate on evidence.
+- Slop test: delete the line; if nothing actionable disappears, the line is noise.
+- Decision tables: one concrete failure mode per option, plus an honest lean. No generic pros.

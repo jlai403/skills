@@ -39,6 +39,28 @@ if ! command -v npx &>/dev/null; then
   exit 1
 fi
 
+# Validate every SKILL.md referenced by the config before installing anything:
+# an invalid frontmatter gets the skill skipped silently, so fail loudly here.
+if ! command -v python3 &>/dev/null; then
+  echo "Warning: python3 not found; skipping SKILL.md validation." >&2
+else
+  while IFS= read -r rel; do
+    name="${rel%/*}"
+    url="${SKILLS_RAW_URL%/}/${rel}"
+    tmp="$(mktemp)"
+    if curl -fsSL "$url" -o "$tmp"; then
+      python3 "$script_dir/scripts/lint_skills.py" "$tmp" || {
+        echo "SKILL.md $rel failed lint; fix it before installing. Aborting." >&2
+        rm -f "$tmp"; exit 1
+      }
+      echo "  lint ok: $rel"
+    else
+      echo "Warning: could not fetch $rel for linting." >&2
+    fi
+    rm -f "$tmp"
+  done < <(yq -r '.install[] | .skills[] | . + "/SKILL.md"' "$SKILLS_FILE")
+fi
+
 # Install from config. Re-running is safe: skills add overwrites existing
 # installs, so no clean-slate wipe is needed.
 repos=($(yq -r '.install | keys | .[]' "$SKILLS_FILE"))

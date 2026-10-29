@@ -13,13 +13,17 @@ description: >-
 
 ## When to use
 
-**Applicable when:** designing structure for new code, reviewing the structure of existing code, refactoring (split or merge modules, wrong-layer logic), deciding where code belongs, or answering any question of the form "why does X import Y".
+**Applicable when:** designing structure for new code, reviewing the structure of existing code, refactoring (split or merge modules, wrong-layer logic), deciding where code belongs, or answering any question of the form "why does X import Y". Questions about what code *does* belong to `requesting-code-review`; this skill covers where code lives and what it may import.
 
 Two modes:
 - **Greenfield**: designing a new feature or system from scratch
 - **Brownfield**: reviewing existing code that needs restructuring
 
 Companion skills: `domain-modeling` defines what the domain concepts are, in the glossary and ADRs. This skill enforces where those concepts live and what they may import. Reference domain-modeling's output. Do not re-generate glossaries or ADRs here.
+
+## Voice
+
+These reviews address the person being reviewed, not the reviewer. Everything the user reads is plain speech: one suggestion per message, each carrying its why in terms of what their next change costs. Mechanical vocabulary (ports, contracts, edge lists, rule numbers) stays inside this file; it never surfaces in user-facing output. Terms kept deliberately: park, superseded, grab-bag. The user picked them, so future edits preserve them.
 
 ## Architecture prescriptions
 
@@ -89,7 +93,7 @@ The architecture's job for testing: exercise the whole context through its publi
 - **Every port needs a cheap second implementation.** A port exists so tests can substitute it: an in-memory fake, or a container-backed real one (ephemeral DB, throwaway broker). A port with only one possible implementation did not invert anything; it moved the wiring, not the power. That is a `FIX`-level finding, same rule as the directional violation smell.
 - **Prefer fakes and real dependencies to mocks.** A mock pins the shape of a collaborator's calls, so the test breaks on refactors that preserve behavior. A fake fulfills the port, so behavior-preserving refactors keep it green. A test builds its world with fakes and real runtimes; it never asserts call sequences on the system under test.
 - **Fixtures build state through the public edges.** Seed a scenario by driving use cases, public interfaces, or repository ports, not by writing rows into whatever table the current implementation has. Fixtures then survive refactors, and their setup reads as business language. A fixture that must reach past a boundary is reporting a leak.
-- **Fixture economics is a review criterion.** Building the scenario for one integration test should be a call site, not archaeology: a fixture/builder module per context (rule 2c applies; `order-scenario.ts` exporting `OrderScenario`). If constructing the fixture takes more lines than the test, the boundary is wrong or construction is hidden, and both are register rows.
+- **Fixture economics is a review criterion.** Building the scenario for one integration test should be a call site, not archaeology: a fixture/builder module per context (rule 2c applies; `order-scenario.ts` exporting `OrderScenario`). If constructing the fixture takes more lines than the test, the boundary is wrong or construction is hidden, and both join the suggestions list.
 
 ### DDD (when applicable)
 
@@ -165,6 +169,17 @@ src/checkout/          (small context — every role has ≤1 file)
 - Exceptions: `index.ts` (the public interface barrel), `*.test.ts` collocations, and 2b's role-hoisted wiring files (`transport.ts` mounts routes; there is no `Transport` class, and inventing one is worse).
 - A file whose export is "everything in the file" hides a missing type or a missing concept. The same diagnostic as the grab-bag rule, at file granularity.
 
+**2d. Monorepo top level.** When frontend and backend both exist, they are root siblings, each with its own build:
+
+```
+repo/
+├── frontend/     own package.json, own build
+├── backend/      own src/ with the context split (rule 2)
+└── iac/          terraform; never imported by code
+```
+
+Never nest frontend and backend inside one shared `src/`. Exceptions: an explicit full-stack framework (SvelteKit, Next with API routes, Rails), or a very small project where the separation costs more than it buys. Different languages or stacks always earn separate root folders.
+
 **3. The layer-first trade-off (why context-first).** Flat layers scatter one concept across four folders. Fine when the service has one context; otherwise the smell is concrete: unrelated rules change together in `models/`, PRs cross contexts, deleting anything means hunting. That scatter is the trigger for rule 2.
 
 **4. Test collocation.** Tests live beside the code they test (`*.test.*` next to the module, or a `__tests__/` sibling), never a global `tests/` tree. They are excluded from the build graph per rule 0.
@@ -185,43 +200,51 @@ One question, at most: what unit is under review, the whole repo, one context, o
 
 ### Phase 1: Inventory
 
-Present the current-state outlines and edge list with `FIX`/`Q` marks. Describe only: no questions, no fixes, no opinions. Judge nothing until the outline is agreed accurate; wrong facts here become wrong rows in the register.
+Present the current-state outlines and edge list, with the suggestions list carrying its row numbers. Outlines are folder-row roll-ups (depth 2, `←` marks), never a scrolling file map. Describe only: no questions, no fixes, no opinions. Judge nothing until the outline is agreed accurate; wrong facts here become wrong list rows.
 
 Ends with one line: "accurate? anything missing?"
 
 ### Phase 2: Suggestion loop
 
-The review proper. One suggestion per exchange:
+One suggestion per exchange:
 
-```
-V1  FIX   route -> repository (bypasses use case)
+> **SUGGESTION 3:** The route reaches into the data store directly.
+>
+> Now:
+>
+> ```diff
+> - route -> db.orders.find(...)
+> + route -> checkout.placeOrder() -> orderRepo
+> ```
+>
+> Why: business rules get bypassed, every route keeps its own copy of
+> them, and fixing a rule later means editing every route.
+>
+> Proposal: the route calls a use case, and only the use case talks to
+> the store.
 
-The transport layer reaches straight into a driven adapter.
-Move the call into a use case and let the route depend on it.
-```
+That is the whole message: label, one Now/After visual, why written as the cost of the next change, proposal. The user decides: make the change, explain why it is not a problem, or park it with a note. A QUESTION row spots both competing placements as two 2-line visuals instead of prose.
 
-That is the whole message. No preamble, no summary of the layer diagram, no restated coupling rules.
-
-- The loop within one suggestion is fluid: debate, redraw the local outline, compare alternatives, sketch code, whatever the suggestion needs. No fixed number of exchanges; an iteration ends when the suggestion has a disposition.
-- Dispositions: fix now, argue away (record the reason), park (deferred, record the reason).
-- A decision reshapes the queue downstream. Fixing one id may make another disappear (mark it `superseded`), or reveal an unlisted violation (add a row). Both edits land in the register at decision time. A suggestion is never decided in isolation when its outcome changes what later suggestions mean.
+- The loop within one suggestion is fluid: debate, redraw the local outline, compare alternatives, sketch code, whatever the suggestion needs. No fixed number of exchanges; an iteration ends when the suggestion has your decision.
+- Decisions: fix now, explain why it is not a problem (reason recorded), park with a note.
+- A decision reshapes the queue downstream. Fixing one id may make another disappear (mark it `superseded`), or reveal an unlisted violation (add a row). Both edits hit the suggestions list when the decision lands. A suggestion is never decided in isolation when its outcome changes what later suggestions mean.
 - Hard rules stay: never two ids in one message, never batched questions. The proposed fix is the question.
 
 ### Phase 3: Wrap-up
 
-Final outlines and edge list reflecting all decisions. The register shows each id's status: `fix`, `dropped`, `parked`, `superseded`. Nothing silently vanishes. On request: one Mermaid block per stack for the PR.
+Final outlines and edge list reflecting all decisions. The suggestions list shows each row's outcome: fixed, dropped, parked, superseded. Nothing silently vanishes. On request: one Mermaid block per stack for the PR.
 
 Brownfield migration. Ordered steps, smallest risk first.
 
 **Step 0: behavior lock.** Before any structure moves, blackbox or integration tests must pin the behavior at the boundary being changed (module entry points, public interfaces, storage edges).
 
 - Unit tests do not count for this. They pin internals, and internals are exactly what the refactor moves; passing units prove nothing about the behavior crossing the boundary. They remain useful for everything else (rule 4 stands); they are just not a behavior lock.
-- If the lock is missing, adding blackbox/integration tests is the first migration step and enters the register as `T#` rows with the same shape as any suggestion, walked in Phase 2. Their fix ranks ahead of every structural step.
+- If the lock is missing, adding blackbox/integration tests is the first migration step and joins the suggestions list as `T#` rows, walked like any other suggestion in Phase 2. Their fix ranks ahead of every structural step.
 - Scope: tests pin the boundary under refactor, per step. This is not a demand for repo-wide coverage before anything moves.
 
-### Violation register
+### Suggestions list
 
-The register (one line per violation: id, signal, fix) is the only artifact that shows all violations at once, and it stays compact. Outlines, edges, and migration steps read from it; they are not separate lists.
+The suggestions list (one line per row: number, kind, headline) is the only artifact that shows all suggestions at once, and it stays compact. Outlines, edges, and migration steps read from it; they are not separate lists.
 
 ## Naming conventions
 
@@ -333,17 +356,22 @@ Does it only describe one route's composition?
 
 ## Visual architecture review
 
-Structure is drawn as plain text: outline graphs for shape, edge lists for dependencies, a numbered register for violations. Plain ASCII only, because it must survive headless sessions, terminal paste, grep, and PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
+Structure is drawn as plain text: outline graphs for shape, edge lists for dependencies, a numbered suggestions list. Plain ASCII only, because it must survive headless sessions, terminal paste, grep, and PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
+
+Rendering convention: bold is markdown outside fences. Inside fences, plain glyphs only (tree lines, `+`/`-`, `←`). Changes render in `diff`-tagged fences, so they come out red/green wherever a highlighter exists and readable elsewhere. No raw ANSI codes; chat surfaces strip them into garbage characters.
 
 ### Markers
 
-- `FIX` breaks a stated rule of the prescription: wrong layer, wrong dependency direction, leaked internals, a grab-bag module. Non-negotiable; it must appear in the migration path.
-- `Q` is a judgement call worth discussing: a possible grab-bag, a boundary question, a doubtful `shared/` candidate. May be argued away; must be surfaced.
-- `V#` is the stable id of a row in the violation register, cited by the suggestion loop and the wrap-up migration steps.
+Two kinds of row in the suggestions list.
+
+- **SUGGESTION** — the review recommends a change, with its why attached.
+- **QUESTION** — the review needs your input to decide.
+
+Each row gets a plain number. The number follows the suggestion across its iteration turns and through the wrap-up, where each row ends as fixed, dropped, parked, or superseded.
 
 ### 1. Structure outlines
 
-One outline per stack, or one per bounded context or feature when the system is big. Depth cap of about 3 levels; flatten deeper structure into separate focused outlines. Greenfield shows the proposed target only; brownfield shows current state, then target state.
+One outline per stack, or one per bounded context or feature when the system is big. A scrolling inventory is a failed inventory: folders become rows with file counts, depth stays at 2, and only the files a decision needs are named, with a `←` mark on rows worth discussing. Greenfield shows the proposed target only; brownfield shows current state, then target state.
 
 ```
 BROWNFIELD (backend) — CURRENT
@@ -360,49 +388,49 @@ utils/
 db.ts
   raw queries
 
-TARGET (hexagonal, per context)
+Target (hexagonal, per context)
 
 src/checkout/
-  transport/
-    routes ... call one use case each, no logic
-  application/
-    checkout.ts ... one per transaction; calls models + services + ports
-  models/
-    order.ts, money/ ... own the rules, declare ports
-    pure: imports nothing outward
-  services/
-    pricing.ts ... cross-aggregate rules
-  infrastructure/
-    order-repo.ts ... collection-like, wraps storage
+├── transport/
+│     routes ... call one use case each, no logic
+├── application/
+│     checkout.ts ... one per transaction; calls models + services + ports
+├── models/
+│     order.ts, money/ ... own the rules, declare ports
+|     pure: imports nothing outward
+├── services/
+│     pricing.ts ... cross-aggregate rules
+└── infrastructure/
+      order-repo.ts ... collection-like, wraps storage
 src/infrastructure/          shared-kernel plumbing only
 ```
 
-### 2. Edge list + violation register
+### 2. Edge list + suggestions list
 
 Every cross-module dependency becomes one row. This is the lossless form of a dependency graph, and it scales. Thirty rows are readable; a graph of thirty nodes is not.
 
 ```
 edges
-  api.ts -> db.ts                    bypasses the use case (V1 FIX)
-  service.ts -> utils.ts             rule belongs on the owning type (V2 FIX)
-  models -> infrastructure           must point inward (V3 FIX)
+  api.ts -> db.ts                    bypasses the use case
+  service.ts -> utils.ts             rule belongs on the owning type
+  models -> infrastructure           must point inward
 
-violations
-  V1  FIX   api.ts -> db.ts          transport reaches into a driven adapter — route calls a use case instead
-  V2  FIX   service.ts -> utils.ts   rule belongs on the owning domain type
-  V3  FIX   models -> infrastructure declare a port; infrastructure implements it
+suggestions list
+  1  SUGGESTION   api.ts -> db.ts          transport reaches into a driven adapter
+  2  SUGGESTION   service.ts -> utils.ts   rule belongs on the owning type
+  3  SUGGESTION   models -> infrastructure declare a port; infrastructure implements it
 ```
 
 ```
 edges (frontend)
   page.tsx -> cart/                  OK (composition)
   cart -> checkout/index.ts          OK (public interface)
-  cart -> checkout/model             (V1 FIX) internal import
-  shared/format.ts <- cart           (V2 Q) cross-cutting, or cart-local?
+  cart -> checkout/model             internal import
+  shared/format.ts <- cart           cross-cutting, or cart-local?
 
-violations
-  V1  FIX   cart -> checkout/model   import checkout's public interface only
-  V2  Q     shared/format.ts         cross-cutting, or move into cart/?
+suggestions list
+  1  SUGGESTION   cart -> checkout/model   import checkout's public interface only
+  2  QUESTION     shared/format.ts         cross-cutting, or move into cart/?
 ```
 
 ## Architecture review checklist
@@ -466,7 +494,7 @@ Size and shape:
 - [ ] Any `utils`/`lib`/`helpers`/`common` grab-bags that should be a named concept?
 - [ ] Any module imported by everything else?
 - [ ] Any duplicate logic across modules?
-- [ ] Before brownfield refactors, do blackbox/integration tests pin behavior at the boundaries being moved?
+- [ ] Before brownfield refactors, do blackbox/integration tests pin behavior at the boundaries being moved (unit tests are not a lock)?
 
 ## Structural smells and target patterns
 
@@ -498,9 +526,9 @@ What each phase emits. Nothing arrives all at once:
 | Phase | Emits |
 |---|---|
 | 0 Scope | one question, or "reviewing X" |
-| 1 Inventory | current outlines + edge list with FIX/Q marks + "accurate?" |
-| 2 Suggestion loop | one V# per exchange: signal, rule broken, proposed fix; iterate as needed |
-| 3 Wrap-up | final outline; register with status per id (fix/dropped/parked/superseded); brownfield migration with `T#` behavior-lock tests first; Mermaid on request |
+| 1 Inventory | folder-row outlines + edge list + "accurate?" |
+| 2 Suggestion loop | one SUGGESTION/QUESTION per message: Now/After diff visual, why, proposal; iterate as needed |
+| 3 Wrap-up | final outline; outcomes per row (fixed/dropped/parked/superseded); brownfield migration with behavior-lock tests first; Mermaid on request |
 
 ## Refactoring triggers
 
