@@ -34,7 +34,7 @@ def main(path):
         print(f"missing keys: {', '.join(missing)}")
         return 1
 
-    expected = path.split("/")[-2]
+    expected = sys.argv[2] if len(sys.argv) > 2 else path.split("/")[-2]
     if meta["name"] != expected:
         print(f"name mismatch: frontmatter says {meta['name']!r}, folder is {expected!r}")
         return 1

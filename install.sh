@@ -63,7 +63,7 @@ else
       url="${SKILLS_RAW_URL%/}/${rel}"
       lint_tmp="$(mktemp)"
       if curl -fsSL "$url" -o "$lint_tmp"; then
-        python3 "$LINT" "$lint_tmp" || {
+        python3 "$LINT" "$lint_tmp" "$name" || {
           echo "SKILL.md $rel failed lint; fix it before installing. Aborting." >&2
           exit 1
         }
