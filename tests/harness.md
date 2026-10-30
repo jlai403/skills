@@ -23,6 +23,17 @@ pstack's two-tier pattern: static checks run everywhere (join
 - **Meta-tests** (critique of a failing transcript, not a scenario) may run
   as harness subagents — contamination-tolerant by design.
 
+## Operational notes
+
+- Session ids are not echoed by `run`; list with
+  `opencode --standalone session list` (it needs `--standalone` too under a
+  clean home) and match by title/timestamp. The runner's transcript file is
+  the record; the eval-home session db is the replay store.
+- Runner usage:
+  `tests/run-scenario.sh <slug> <skill-path|-> "<prompt>"` — control arms
+  pass `-`. Multi-turn: another runner call ending
+  `-s <sessionID> "<reply>"`.
+
 ## Adding a skill to the harness
 
 1. `mkdir tests/<skill>/`
