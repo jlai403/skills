@@ -301,7 +301,7 @@ When designing or reviewing data objects, align on these decisions. Each bolded 
 
 **Composition vs reference.** Decide whether object A contains object B or references it by id. Compose when B has no meaning without A (a `LineItem` inside an `Order`); reference when B exists independently (`userId` on an `Order`).
 
-**Nullability.** A field is required when the object cannot be valid without it, and optional when it can. Avoid nullable fields that are only sometimes populated; that signals the object is doing two jobs.
+**Nullability.** A field is required when the object cannot be valid without it, and optional when it can. Avoid nullable fields that are only sometimes populated; that signals the object is doing two jobs. A field that is nullable and never assigned anywhere is not dead code — it is the same missing-reference question (an order that doesn't know its customer). Raise it, at least as the QUESTION row, even when nothing reads the field yet.
 
 **Invariants.** Name what must always be true of the object. `Order.total` must equal the sum of its `lineItem` amounts. If the invariant spans several objects, name the object that enforces it.
 

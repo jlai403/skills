@@ -15,12 +15,16 @@
 set -euo pipefail
 
 readonly EVAL_HOME="/tmp/opencode/eval-home"
+readonly EVAL_WORKDIR="/tmp/opencode/eval-workdir"
 usage() { echo "usage: $0 <fixture-slug> <skill-path|-> \"<prompt>\"" >&2; exit 2; }
 [[ $# -ge 3 ]] || usage
 slug="$1" skill="$2" prompt="$3"; shift 3
 
 outdir="/tmp/opencode/${slug}-runs"
-mkdir -p "$outdir" "$EVAL_HOME"
+mkdir -p "$outdir" "$EVAL_HOME" "$EVAL_WORKDIR"
+# cwd must be skill-free too: from this repo, opencode discovers the very
+# skill under test (third contamination vector, found 2026-10-30).
+cd "$EVAL_WORKDIR"
 
 prelude=""
 if [[ $# -ge 1 && "$1" == "-s" && $# -ge 3 ]]; then

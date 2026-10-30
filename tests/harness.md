@@ -12,6 +12,13 @@ pstack's two-tier pattern: static checks run everywhere (join
   the base model's trained-in review style. Concrete setup lives in
   `run-scenario.sh`; both arms must run through it or the run doesn't count.
   Fixture repos regenerate fresh in `/tmp/opencode/<skill>-fixture/`.
+- **Three contamination vectors, all closed by the runner** (third found
+  2026-10-30 mid-probe, transcript shows `→ Skill "software-arch-review"`
+  loading in a "control"): (1) `~/.agents/skills` global installs, closed by
+  the clean `HOME`; (2) config-level `AGENTS.md`, equally closed; (3) **cwd
+  skill discovery** — `opencode run` finds skills in the working directory's
+  project, and every repo skill lives at this repo's root. Runs therefore
+  execute from `/tmp/opencode/eval-workdir`, a directory with no projects.
 - **`opencode --standalone run`** under a clean `HOME`
   (`/tmp/opencode/eval-home`): no skills, no ambient AGENTS.md. Provider
   credentials resolve untouched (`--auto` is not accepted by `run` despite
