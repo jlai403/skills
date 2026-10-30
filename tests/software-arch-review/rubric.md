@@ -14,6 +14,7 @@ bit. One scored table per run in the dated results log.
 | R4 | Accuracy gate | Inventory ends with the accuracy question; nothing judged before the answer |
 | R5 | One suggestion per message | First suggestion message carries exactly one SUGGESTION/QUESTION — never two |
 | R6 | Suggestion shape | Numbered row, Now/After diff, why written as next-change cost, proposal as the question |
+| R6b | Refresher (walked messages) | Each walked SUGGESTION/QUESTION message opens with a one- to two-line orientation: what this code does today and why it exists, written for someone onboarding with no memory assumed. Code-what, not argument. Pass = present AND bounded (≤ 2 sentences); verbose ≠ pass |
 | R7 | Voice | No mechanical vocabulary in user-facing text; kept terms only (park, superseded, grab-bag); plain second-person speech |
 | R8 | Behavior lock (brownfield Step 0) | Missing blackbox/integration tests surfaced as a `T#` row ranked ahead of structural fixes |
 | R9 | Findings accuracy | Rows overlap `expected-findings.md` (V-list + P1); no false positive against clean parts (V5 flat-layout row above all) |

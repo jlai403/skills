@@ -3,40 +3,43 @@
 # Every arm (control, with-skill) must go through this or the run doesn't count.
 #
 # Usage:
-#   tests/run-scenario.sh <fixture-slug> <skill-path|-> "<prompt>"
-#     <fixture-slug>   regenerates nothing; only names the transcript home
-#                      (/tmp/opencode/<slug>-runs/), keep stable per suite
-#     <skill-path>     absolute path to the SKILL.md given to the agent,
-#                      or "-" for a control run (no skill preamble)
-#     <prompt>         the full scenario user message
+#   tests/run-scenario.sh <suite-slug> <skill-path|-> "<prompt>"
+#     <suite-slug>     names the transcript home (/tmp/opencode/<slug>-runs/)
+#     <skill-path>     absolute path to SKILL.md handed to the agent, or "-"
+#                      for a control run
+#   continuations (multi-turn):
+#   tests/run-scenario.sh <suite-slug> - -s <sessionID> "<owner reply>"
 #
-# Prints the session id first line, then the full transcript. Continuations
-# append to the same transcript file via: run-scenario.sh <slug> - -s <sessionID> "<reply>"
+# Contract: clean home, neutral cwd (no project skills discovery), fresh
+# fixture dirs per suite. Sessions are titled <slug>-<HHMMSS>; ids are
+# authoritative in ~/.local/share/opencode/opencode.db of the eval home —
+# query by title, `session list` is project-scoped and misleading.
 set -euo pipefail
 
 readonly EVAL_HOME="/tmp/opencode/eval-home"
 readonly EVAL_WORKDIR="/tmp/opencode/eval-workdir"
-usage() { echo "usage: $0 <fixture-slug> <skill-path|-> \"<prompt>\"" >&2; exit 2; }
+usage() { echo "usage: $0 <suite-slug> <skill-path|-> \"<prompt>\"  |  $0 <slug> - -s <sessionID> \"<reply>\"" >&2; exit 2; }
 [[ $# -ge 3 ]] || usage
-slug="$1" skill="$2" prompt="$3"; shift 3
 
-outdir="/tmp/opencode/${slug}-runs"
-mkdir -p "$outdir" "$EVAL_HOME" "$EVAL_WORKDIR"
-# cwd must be skill-free too: from this repo, opencode discovers the very
-# skill under test (third contamination vector, found 2026-10-30).
+slug="$1" skill="$2" sid="" prompt="$3"
+if [[ "$3" == "-s" ]]; then
+  [[ $# -ge 5 ]] || usage
+  sid="$4" prompt="$5"
+fi
+[[ "$sid" != "" ]] || { [[ "$skill" == "-" || -f "$skill" ]] || { echo "no skill file at $skill" >&2; exit 2; }; }
+
+mkdir -p "/tmp/opencode/${slug}-runs" "$EVAL_HOME" "$EVAL_WORKDIR"
 cd "$EVAL_WORKDIR"
 
 prelude=""
-if [[ $# -ge 1 && "$1" == "-s" && $# -ge 3 ]]; then
-  sid="$2"; prompt="$3"
-  exec HOME="$EVAL_HOME" opencode --standalone run -s "$sid" "$prompt"
-fi
-
 if [[ "$skill" != "-" ]]; then
-  [[ -f "$skill" ]] || { echo "no skill file at $skill" >&2; exit 2; }
   prelude="You have a skill available for this work. Read the complete file at $skill before starting; if it applies to the task, follow it.
 
 "
 fi
 
-HOME="$EVAL_HOME" opencode --standalone run "${prelude}${prompt}"
+if [[ "$sid" != "" ]]; then
+  HOME="$EVAL_HOME" opencode --standalone run -s "$sid" "$prompt"
+else
+  HOME="$EVAL_HOME" opencode --standalone run --title "${slug}-$(date +%H%M%S)" "${prelude}${prompt}"
+fi

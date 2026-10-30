@@ -192,7 +192,7 @@ Never nest frontend and backend inside one shared `src/`. Exceptions: an explici
 
 ## Review flow
 
-Inventory first, then one suggestion per exchange, with as many exchanges as that suggestion needs. Lead with the outline plus one sentence on what it reveals. Short sentences, no background, silence on what is correct.
+Inventory first, then one suggestion per exchange, with as many exchanges as that suggestion needs. Lead with the outline plus one sentence on what it reveals. Short sentences, no background beyond each row's refresher, silence on what is correct.
 
 ### Phase 0: Scope (skip when obvious)
 
@@ -210,6 +210,11 @@ One suggestion per exchange:
 
 > **SUGGESTION 3:** The route reaches into the data store directly.
 >
+> Refresher: today the route itself creates the order — it prices the cart,
+> applies the gold discount, and writes to the database in one function. It
+> is the only live checkout path, and `placeOrder` was written to replace
+> exactly this.
+>
 > Now:
 >
 > ```diff
@@ -223,7 +228,9 @@ One suggestion per exchange:
 > Proposal: the route calls a use case, and only the use case talks to
 > the store.
 
-That is the whole message: label, one Now/After visual, why written as the cost of the next change, proposal. The user decides: make the change, explain why it is not a problem, or park it with a note. A QUESTION row spots both competing placements as two 2-line visuals instead of prose.
+That is the whole message: label, refresher, one Now/After visual, why written as the cost of the next change, proposal. The user decides: make the change, explain why it is not a problem, or park it with a note. A QUESTION row spots both competing placements as two 2-line visuals instead of prose.
+
+- The refresher is mandatory and bounded: one to two sentences on what the touched code does today and why it exists, written for a developer seeing it for the first time. If the reader must remember the codebase to follow the row, the row starts late. It is context only — verdicts, alternatives, and history stay in the why.
 
 - The loop within one suggestion is fluid: debate, redraw the local outline, compare alternatives, sketch code, whatever the suggestion needs. No fixed number of exchanges; an iteration ends when the suggestion has your decision.
 - Decisions: fix now, explain why it is not a problem (reason recorded), park with a note.
@@ -541,7 +548,7 @@ What each phase emits. Nothing arrives all at once:
 |---|---|
 | 0 Scope | one question, or "reviewing X" |
 | 1 Inventory | folder-row outlines + edge list + "accurate?" |
-| 2 Suggestion loop | one SUGGESTION/QUESTION per message: Now/After diff visual, why, proposal; iterate as needed |
+| 2 Suggestion loop | one SUGGESTION/QUESTION per message: refresher, Now/After diff visual, why, proposal; iterate as needed |
 | 3 Wrap-up | final outline; outcomes per row (fixed/dropped/parked/superseded); brownfield migration with behavior-lock tests first; Mermaid on request |
 
 ## Refactoring triggers
