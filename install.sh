@@ -101,7 +101,14 @@ for repo in "${repos[@]}"; do
   fi
 
   echo "  Installing $repo..."
-  npx "skills@${SKILLS_VERSION}" add -g -y "$repo" "${skill_flags[@]}" "${agent_flags[@]}"
+  repo_arg="$repo"
+  # Branch testing: SKILLS_REF points the checkout's own repo content at a
+  # ref. SKILLS_RAW_URL redirects only config/lint fetches; without this the
+  # CLI installs the default branch and a branch test silently tests nothing.
+  if [[ -n "${SKILLS_REF:-}" && "$repo" == "jlai403/skills" ]]; then
+    repo_arg="$repo#$SKILLS_REF"
+  fi
+  npx "skills@${SKILLS_VERSION}" add -g -y "$repo_arg" "${skill_flags[@]}" "${agent_flags[@]}"
 done
 
 echo "Done."

@@ -63,9 +63,11 @@ tests/skill-hygiene/test-skill-hygiene.sh   # static: frontmatter, size, refs; n
 ```
 
 Live evals for `software-arch-review` (scenario prompts, fixture generator,
-rubric, expected findings) live in `tests/software-arch-review/`. They run as
-subagent scenarios with a no-guidance control, manually scored against the
-rubric — run them before any SKILL.md edit ships.
+rubric, expected findings) live in `tests/software-arch-review/` and run
+through the shared harness (`tests/harness.md`) — defined clean environment
+via `tests/run-scenario.sh`, manually scored against the rubric, before any
+SKILL.md edit ships. Static checks without an LLM:
+`tests/skill-hygiene/test-skill-hygiene.sh`.
 
 ## Uninstall
 
@@ -76,9 +78,14 @@ npx skills@1.7.0 remove -g --all -y && rm -rf ~/.agents/skills
 ## Overrides
 
 `SKILLS_RAW_URL` sets the base URL for the `skills.yml` download. Use it to test
-a branch before merging:
+a branch's config before merging.
+
+Careful: `SKILLS_RAW_URL` redirects only the config and lint fetches — skill
+content still installs from `main`. Branch testing needs `SKILLS_REF` too,
+which points the checkout's own repo content at a ref:
 
 ```bash
 SKILLS_RAW_URL=https://raw.githubusercontent.com/jlai403/skills/my-branch \
-  bash <(curl -fsSL https://raw.githubusercontent.com/jlai403/skills/my-branch/install.sh)
+SKILLS_REF=my-branch \
+  ./install.sh
 ```
