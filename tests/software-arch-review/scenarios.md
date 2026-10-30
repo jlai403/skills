@@ -13,32 +13,37 @@ run them.
 
 ## Protocol (all scenarios)
 
+**Runtime (from the 2026-10-29 validation, see results file):** scenarios run
+via `opencode --standalone run` with `HOME=/tmp/opencode/eval-home` — a clean
+home with no `~/.agents/skills`, no config `AGENTS.md`, no ambient skills.
+Both arms run this way for symmetry. One important validated finding: even
+hermetic controls produce skill-shaped reviews (depth-2 roll-ups, edge lists,
+SUGGESTION labels, accuracy gates) — the base model is trained into this
+style. The skill's discriminating behaviors are therefore the *unique*
+mandates: ranking T/lock rows first, the single-context exception check, the
+one-suggestion cadence under pressure, and the override recipe.
+
 1. `./make-fixture.sh` — fresh fixture at
    `/tmp/opencode/arch-review-fixture/order-service`. Never reuse a fixture
    across report cycles.
-2. Run via the harness's subagent tool, `general` agent, fresh context per run.
-   Do **not** name the skill's repo path in any prompt unless it is the
-   with-skill variant itself.
-3. **With-skill runs:** the prompt states that the agent has a skill
-   available and gives its absolute path
-   (`/root/development/skills/software-arch-review/SKILL.md`) with the
-   instruction to read the complete file first. Equivalent to inlining the
-   text: fresh context sees the full current skill content as its first act,
-   from the single source of truth rather than 15 hand-copied snapshots.
-4. **Control runs:** the identical prompt, skill text omitted. If the control
-   happens to read the skill's SKILL.md anyway, the run is invalid — document
-   it in the results log and rerun. If the control does not exhibit the target
-   failure, the scenario tests nothing — record and move on.
+2. **Control runs:** the scenario user message verbatim, run in the clean
+   eval home. Control = `HOME=/tmp/opencode/eval-home opencode --standalone run "<message>"`.
+3. **With-skill runs:** same clean home; the prompt adds "You have a skill
+   available for this work: software-arch-review, at
+   /root/development/skills/software-arch-review/SKILL.md. Read the complete
+   file before starting; if it applies, follow it." (model must read it by
+   path; the transcript is checked for the read).
+4. **Multi-turn** (R5/R10): continue the session —
+   `opencode --standalone run -s <sessionID> "<repo owner reply>"` —
+   playing the colleague for 2–3 exchanges.
 5. **3 reps per variant per report cycle** (single samples lie; variance is a
    metric — three with-skill runs in three different shapes means the skill is
    not binding). Record model id and date per run.
 6. Read **every** transcript manually against `rubric.md` +
    `expected-findings.md`. Transcript links and verbatim findings go in a
    dated `results-YYYY-MM-DD.md`.
-7. S1 first pass is **single-turn**: score the first two to three messages
-   (inventory + first suggestion). Multi-turn (playing the repo owner across
-   suggestion exchanges) is the second-pass upgrade reserved for testing
-   numbering/outcome rules.
+7. Meta-tests (transcript critique, not scenarios) may still run as harness
+   subagents — contamination-tolerant by nature. Scene evals never do.
 
 ---
 
