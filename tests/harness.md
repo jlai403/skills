@@ -32,10 +32,11 @@ pstack's two-tier pattern: static checks run everywhere (join
 
 ## Operational notes
 
-- Session ids are not echoed by `run`; list with
-  `opencode --standalone session list` (it needs `--standalone` too under a
-  clean home) and match by title/timestamp. The runner's transcript file is
-  the record; the eval-home session db is the replay store.
+- **Session ids:** `run` doesn't echo them and `session list` is
+  project-scoped by the calling cwd — misleading across directories. Authoritative
+  lookup, run from anywhere:
+  `python3 -c "import sqlite3; print(sqlite3.connect('/tmp/opencode/eval-home/.local/share/opencode/opencode.db').execute(\"SELECT id, title FROM session_v2 WHERE directory='/tmp/opencode/eval-workdir' ORDER BY time_created DESC LIMIT 1\").fetchone())"`.
+  Runner titles every run `<slug>-<HHMMSS>` so runs are traceable.
 - Runner usage:
   `tests/run-scenario.sh <slug> <skill-path|-> "<prompt>"` — control arms
   pass `-`. Multi-turn: another runner call ending
