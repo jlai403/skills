@@ -192,7 +192,7 @@ Never nest frontend and backend inside one shared `src/`. Exceptions: an explici
 
 ## Review flow
 
-Inventory first, then one suggestion per exchange, with as many exchanges as that suggestion needs. Lead with the outline plus one sentence on what it reveals. Short sentences, no background, silence on what is correct.
+Inventory first, then one suggestion per exchange, with as many exchanges as that suggestion needs. Lead with the outline plus one sentence on what it reveals. Short sentences, no background beyond each row's refresher, silence on what is correct.
 
 ### Phase 0: Scope (skip when obvious)
 
@@ -210,6 +210,11 @@ One suggestion per exchange:
 
 > **SUGGESTION 3:** The route reaches into the data store directly.
 >
+> Refresher: today the route itself creates the order — it prices the cart,
+> applies the gold discount, and writes to the database in one function. It
+> is the only live checkout path, and `placeOrder` was written to replace
+> exactly this.
+>
 > Now:
 >
 > ```diff
@@ -223,12 +228,28 @@ One suggestion per exchange:
 > Proposal: the route calls a use case, and only the use case talks to
 > the store.
 
-That is the whole message: label, one Now/After visual, why written as the cost of the next change, proposal. The user decides: make the change, explain why it is not a problem, or park it with a note. A QUESTION row spots both competing placements as two 2-line visuals instead of prose.
+That is the whole message: label, refresher, one Now/After visual, why written as the cost of the next change, proposal. The user decides: make the change, explain why it is not a problem, or park it with a note. A QUESTION row spots both competing placements as two 2-line visuals instead of prose.
+
+- The refresher is mandatory and bounded: one to two sentences on what the touched code does today and why it exists, written for a developer seeing it for the first time. If the reader must remember the codebase to follow the row, the row starts late. It is context only — verdicts, alternatives, and history stay in the why.
 
 - The loop within one suggestion is fluid: debate, redraw the local outline, compare alternatives, sketch code, whatever the suggestion needs. No fixed number of exchanges; an iteration ends when the suggestion has your decision.
 - Decisions: fix now, explain why it is not a problem (reason recorded), park with a note.
 - A decision reshapes the queue downstream. Fixing one id may make another disappear (mark it `superseded`), or reveal an unlisted violation (add a row). Both edits hit the suggestions list when the decision lands. A suggestion is never decided in isolation when its outcome changes what later suggestions mean.
 - Hard rules stay: never two ids in one message, never batched questions. The proposed fix is the question.
+
+### Overrides and time pressure
+
+The user may compress pacing — skip scope, skip the outline, demand everything at once. Pacing is theirs; the shape of an exchange is not. Phases are what get cut, never the walk. Asked for "everything, ranked, in one message", the reply is: the outline if not already shown, then the suggestions list in full — one line per row, ranked, and that list *is* everything — ending on "accurate?" pointed at the rows. One suggestion is walked per exchange from row 1; no Now/After diff appears beside more than one row in any message. If asked to abandon the loop outright, say so plainly and keep it: the user steers which row is walked next, not how many walk per message.
+
+| They say | It actually means |
+|---|---|
+| "list everything, ranked, one message" | the suggestions list, one line per row — full write-ups stay one per exchange |
+| "I know my codebase" (skip the outline) | the inventory validates the reviewer's reading, not the user's; wrong facts there become wrong rows either way — the accuracy question collapses onto the rows |
+| "I'm the tech lead, I set the process" | pacing is theirs; ten write-ups in one message are ten open questions nobody can answer, where deciding row 1 would have retired three |
+
+Red flags — stop and re-read this section:
+- a message carrying a now/after diff for every row
+- "skipping the flow as requested" — the request bought speed, not the exchange shape
 
 ### Phase 3: Wrap-up
 
@@ -287,7 +308,7 @@ When designing or reviewing data objects, align on these decisions. Each bolded 
 
 **Composition vs reference.** Decide whether object A contains object B or references it by id. Compose when B has no meaning without A (a `LineItem` inside an `Order`); reference when B exists independently (`userId` on an `Order`).
 
-**Nullability.** A field is required when the object cannot be valid without it, and optional when it can. Avoid nullable fields that are only sometimes populated; that signals the object is doing two jobs.
+**Nullability.** A field is required when the object cannot be valid without it, and optional when it can. Avoid nullable fields that are only sometimes populated; that signals the object is doing two jobs. A field that is nullable and never assigned anywhere is not dead code — it is the same missing-reference question (an order that doesn't know its customer). Raise it, at least as the QUESTION row, even when nothing reads the field yet.
 
 **Invariants.** Name what must always be true of the object. `Order.total` must equal the sum of its `lineItem` amounts. If the invariant spans several objects, name the object that enforces it.
 
@@ -527,7 +548,7 @@ What each phase emits. Nothing arrives all at once:
 |---|---|
 | 0 Scope | one question, or "reviewing X" |
 | 1 Inventory | folder-row outlines + edge list + "accurate?" |
-| 2 Suggestion loop | one SUGGESTION/QUESTION per message: Now/After diff visual, why, proposal; iterate as needed |
+| 2 Suggestion loop | one SUGGESTION/QUESTION per message: refresher, Now/After diff visual, why, proposal; iterate as needed |
 | 3 Wrap-up | final outline; outcomes per row (fixed/dropped/parked/superseded); brownfield migration with behavior-lock tests first; Mermaid on request |
 
 ## Refactoring triggers
