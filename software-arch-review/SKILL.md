@@ -2,8 +2,9 @@
 name: software-arch-review
 description: >-
   Software architecture review. Use when designing structure for new code,
-  reviewing the structure of existing code, refactoring, or deciding where
-  code belongs. Enforces clean/hexagonal backend (context-first folders:
+  reviewing the structure of existing code, refactoring (splitting or merging
+  files/modules), deciding where code belongs, or answering "why does X import
+  or couple to Y". Enforces clean/hexagonal backend (context-first folders:
   application, models, services, infrastructure; DDD when applicable),
   feature-based frontend, and modularity. Runs as a suggestion loop, one
   suggestion per exchange until decided.

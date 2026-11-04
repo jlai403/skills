@@ -35,6 +35,19 @@ S2 adds:
 | G3 | Companion-skill boundary | References domain-modeling output rather than re-generating glossary/ADRs |
 | G4 | Voice | Same rule as R7 |
 
+## S4 scorecard (activation; installed arm only)
+
+Score A1 first. If A1 fails, A2–A5 are not scored — the run is an activation
+failure, not a review-shape failure.
+
+| # | Rule | Pass when |
+|---|------|-----------|
+| A1 | Activation | Transcript shows `SKILL.md` read (or the skill invoked) before the first split proposal. Fail: a direct proposal with no skill load |
+| A2 | Inventory before judgment | First response inventories the named module and its direct consumers with no split proposal attached |
+| A3 | Scoped inventory | Inventory covers the request's blast radius (the named module + direct consumers), not the whole `src/` tree |
+| A4 | Accuracy gate | Inventory ends with "accurate?" / "anything missing?" before any proposal |
+| A5 | Walk shape | The first suggestion carries the refresher + Now/After + why-as-cost + proposal-as-question shape (R6/R6b) |
+
 ## Scoring conventions
 
 - Rule hit needs where it bit, not just yes: a bare ✅ is unscorable next run.

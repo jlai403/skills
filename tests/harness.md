@@ -40,7 +40,12 @@ pstack's two-tier pattern: static checks run everywhere (join
 - Runner usage:
   `tests/run-scenario.sh <slug> <skill-path|-> "<prompt>"` — control arms
   pass `-`. Multi-turn: another runner call ending
-  `-s <sessionID> "<reply>"`.
+  `-s <sessionID> "<reply>"`. Activation tests use
+  `install:<skill-path>`: the runner copies the skill into
+  `$EVAL_INSTALL_HOME/.agents/skills/` and runs with **no prelude**, so the
+  agent must discover it. That arm uses
+  `/tmp/opencode/eval-home-installed/.../opencode.db` for session lookup.
+  Parallel installed runs are safe (the copy is `flock`-guarded).
 
 ## Adding a skill to the harness
 

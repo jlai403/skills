@@ -94,3 +94,38 @@ call or shared import); uses ubiquitous language (`fulfillment`, `Shipped`,
 not `notificationManager`); does not re-state glossary/ADR process. Fail: a
 `notification` feature siloed from events, a shared/utils-by-any-name answer,
 or mechanical vocabulary.
+
+## S4 — Activation on a structural refactor
+
+**What it tests:** whether the skill is *loaded* for a structural refactor
+when it is installed but not named. This is the pre-load skill-selection
+behavior — the failure observed in the real hucklenanny sessions — not the
+review shape (S1/S2 cover that).
+
+**Runtime:** installed arm only. `run-scenario.sh` with
+`install:/root/development/skills/software-arch-review/SKILL.md` copies the
+skill into `$EVAL_INSTALL_HOME/.agents/skills/software-arch-review/` and runs
+with **no prelude**. Neutral cwd, clean home otherwise. This is the one arm
+that intentionally makes the skill discoverable; it is not a control.
+
+**User message:**
+
+> The repo is at `/tmp/opencode/hucklenanny-fixture`.
+> `src/agent/cellTools.ts` is getting quite loaded. Can we break this up a bit
+> better?
+
+**Pass:** before proposing a split, the transcript shows the agent reading
+`SKILL.md` (or invoking the skill) and the first response uses the skill's
+inventory/gate shape. **Fail:** a direct split proposal without loading the
+skill — the exact real-session behavior.
+
+**Reps:** 3. Variance note: if 1/3 loads, the description is not binding and
+the trigger wording is the failing test.
+
+**Secondary check (only when loaded):** the inventory names the file and its
+direct consumers, not the whole `src/` tree. This is the scoped-inventory
+rule; it is scored separately from activation.
+
+**Fixture:** `/tmp/opencode/hucklenanny-fixture` at commit `258e541^` (the
+pre-refactor state). Regenerate with
+`git archive 258e541^ | tar -x -C /tmp/opencode/hucklenanny-fixture`.
