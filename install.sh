@@ -39,25 +39,35 @@ if ! command -v npx &>/dev/null; then
   exit 1
 fi
 
-# Validate every SKILL.md referenced by the config before installing anything:
-# an invalid frontmatter gets the skill skipped silently, so fail loudly here.
+# Validate this repo's own SKILL.md files before installing anything: an invalid
+# frontmatter gets a skill skipped silently by `skills add`, so fail loudly here.
+# Third-party skills are linted by the CLI against their own repos, which already
+# warn on parse errors; linting them here is both impossible (per-repo paths
+# differ) and redundant.
 if ! command -v python3 &>/dev/null; then
   echo "Warning: python3 not found; skipping SKILL.md validation." >&2
 else
   # In curl|bash mode there is no checkout, so fetch the linter from the same
   # branch the config came from. Pin both to SKILLS_RAW_URL to avoid drift.
+  # LINT_TMP is set only when the linter is a fetched temp file; the EXIT trap
+  # below must not remove this repo's own scripts/lint_skills.py in checkout
+  # mode.
+  LINT_TMP=""
   if [[ -f "$script_dir/scripts/lint_skills.py" ]]; then
     LINT="$script_dir/scripts/lint_skills.py"
   else
     LINT="$(mktemp)"
     if ! curl -fsSL "${SKILLS_RAW_URL%/}/scripts/lint_skills.py" -o "$LINT"; then
       echo "Warning: could not fetch lint_skills.py; skipping validation." >&2
+      rm -f "$LINT"
       LINT=""
+    else
+      LINT_TMP="$LINT"
     fi
   fi
   if [[ -n "$LINT" ]]; then
     lint_tmp=""
-    trap 'rm -f "$LINT" ${lint_tmp:+"$lint_tmp"}' EXIT
+    trap 'rm -f ${LINT_TMP:+"$LINT_TMP"} ${lint_tmp:+"$lint_tmp"}' EXIT
     while IFS= read -r rel; do
       name="${rel%/*}"
       url="${SKILLS_RAW_URL%/}/${rel}"
@@ -73,7 +83,7 @@ else
       fi
       rm -f "$lint_tmp"
       lint_tmp=""
-    done < <(yq -r '.install[] | .skills[] | . + "/SKILL.md"' "$SKILLS_FILE")
+    done < <(yq -r '.install["jlai403/skills"].skills[] | . + "/SKILL.md"' "$SKILLS_FILE")
   fi
 fi
 
