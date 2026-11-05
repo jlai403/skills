@@ -55,6 +55,7 @@ failure, not a review-shape failure.
 | R12 | Log write (greenfield) | Wrap-up ends with **ARCHITECTURE-REVIEW-LOG.md** written at repo root: one entry per structural decision, date + mode + decision + alternatives + why + `Status: active`; artifact absent before the review |
 | R13 | Log read + reconcile (brownfield) | The read/drift section is a known baseline behavior (recorded, not scored). The discriminating bar is the write: wrap-up appends one entry per decided suggestion **and** updates the `Status` of entries the review resolved or superseded — a drift row that got fixed flips to `superseded` (with the why), parked rows flip when parked. Leaving just-contradicted entries `active` = fail |
 | R14 | Log compaction | With 41 active entries seeded, wrap-up folds superseded entries into Settled history (one line: date — decision — why superseded), leaves active entries verbatim or grouped, never deletes an active decision, and reports that it compacted |
+| R15 | Flip precision (no over-flip) | `Status` must track the decision, not the remediation: only entries a **fixed** row replaces flip to `superseded`; entries whose rows were parked or left undecided stay `active`. Any flip of a parked-row entry (to `parked` or `superseded`) = fail; count every false flip |
 
 Scoring conventions carried over from S1–S4: a rule hit needs the verbatim
 line where it bit; on a with-skill ❌ the transcript goes to a meta-test before

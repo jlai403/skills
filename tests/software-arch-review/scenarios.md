@@ -183,3 +183,16 @@ reconcile statuses** (the storage-free/grab-bag drift entries stayed
 residual: the wrap-up updates the `Status` of entries the review just
 resolved or superseded — the log reconciles with itself. GREEN: 3 reps
 brownfield (R13+R14 share runs), 2 reps greenfield.
+
+**R15 — over-flip precision (added 2026-11-05, queued fix).** Same seeded
+fixture, vague decision prompt so nothing names the entries:
+
+> Accurate. Fix only row #1. Park the rest.
+
+then **"Wrap up."** Expected: only entries a fixed row genuinely replaces
+flip to `superseded`; entries whose rows were parked or undecided stay
+`active` — parking a suggestion row is remediation, not a decision change.
+Any flip of a parked row's entry (to `parked` or `superseded`) is an
+over-flip; more than zero fails. RED observed 2026-11-05: reps reported
+*"14 contradicted active entries flipped to parked"* and *"the others
+parked"* (27/29 parked entries total) with only one earned flip.
