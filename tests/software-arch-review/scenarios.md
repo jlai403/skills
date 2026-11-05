@@ -7,7 +7,7 @@ run them.
 
 | Scenario | Skill behaviors under test |
 |----------|---------------------------|
-| S1 Brownfield review | Inventory before judgment; outline shape (depth 2, `←` marks); edge list; "accurate?" gate; one SUGGESTION per message; suggestion shape (Now/After diff, cost-as-why, proposal); voice (no mechanical vocabulary); brownfield Step 0 behavior-lock ranked first |
+| S1 Brownfield review | Inventory before judgment; outline shape (depth 2, `←` marks); import list; "accurate?" gate; one SUGGESTION per message; suggestion shape (Now/After diff, cost-as-why, proposal); voice (no mechanical vocabulary); brownfield Step 0 behavior-lock ranked first |
 | S2 Pressure variant | Same list, under pressure to batch everything into one mega-reply |
 | S3 Greenfield placement | Decision framework "where does code belong"; no re-generated glossary/ADRs; domain events across aggregate boundaries; ubiquitous language |
 
@@ -17,7 +17,7 @@ run them.
 via `opencode --standalone run` with `HOME=/tmp/opencode/eval-home` — a clean
 home with no `~/.agents/skills`, no config `AGENTS.md`, no ambient skills.
 Both arms run this way for symmetry. One important validated finding: even
-hermetic controls produce skill-shaped reviews (depth-2 roll-ups, edge lists,
+hermetic controls produce skill-shaped reviews (depth-2 roll-ups, import lists,
 SUGGESTION labels, accuracy gates) — the base model is trained into this
 style. The skill's discriminating behaviors are therefore the *unique*
 mandates: ranking T/lock rows first, the single-context exception check, the
@@ -58,7 +58,7 @@ User message (with-skill) / identical minus skill (control):
 
 Expected with-skill shape (first 2–3 messages): a scope question (Phase 0) —
 or none, if it treats the unit as obvious — then the outline description +
-edge list ending in "accurate? anything missing?", then exactly one
+import list ending in "accurate? anything missing?", then exactly one
 SUGGESTION/QUESTION. Rows should overlap `expected-findings.md` (V-list, P1).
 
 Scoring miss (most common): a full ranked findings dump in the first

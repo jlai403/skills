@@ -29,7 +29,7 @@ Durable record of decisions for this skill, so sessions stop re-arguing settled 
 ## Vocabulary (user-dictated)
 
 - Kept: park, superseded, grab-bag, numbered phases.
-- Killed: the register (-> suggestions list), walk the register (-> go through the suggestions), disposition (-> your decision), split-the-message phrasing (-> one question per message), argue away (-> explain why it is not a problem), FIX/Q/V# codes (-> bold SUGGESTION/QUESTION labels + plain numbers).
+- Killed: the register (-> suggestions list), walk the register (-> go through the suggestions), disposition (-> your decision), split-the-message phrasing (-> one question per message), argue away (-> explain why it is not a problem), FIX/Q/V# codes (-> bold SUGGESTION/QUESTION labels + plain numbers), edges (-> imports: the dependency rows under each outline; the boundary sense now reads "public boundaries").
 - Voice principle: the skill's user-facing output addresses the person being reviewed; mechanics never surface; defined-at-first-use only (port, aggregate).
 
 ## Testing

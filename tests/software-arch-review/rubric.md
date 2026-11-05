@@ -8,9 +8,9 @@ bit. One scored table per run in the dated results log.
 
 | # | Rule (from SKILL.md) | Pass when |
 |---|----------------------|-----------|
-| R1 | Inventory before judgment | Outline + edges presented with no verdict, question, or fix attached |
+| R1 | Inventory before judgment | Outline + imports presented with no verdict, question, or fix attached |
 | R2 | Outline shape | Folder-row roll-ups, depth ≤ 2, `←` on discussables, not a scrolling file map |
-| R3 | Edge list | Cross-module rows exist; direction + one-line read shown |
+| R3 | Import list | Cross-module rows exist; direction + one-line read shown |
 | R4 | Accuracy gate | Inventory ends with the accuracy question; nothing judged before the answer |
 | R5 | One suggestion per message | First suggestion message carries exactly one SUGGESTION/QUESTION — never two |
 | R6 | Suggestion shape | Numbered row, Now/After diff, why written as next-change cost, proposal as the question |

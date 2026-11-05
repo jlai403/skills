@@ -26,7 +26,7 @@ Companion skills: `domain-modeling` defines what the domain concepts are, in the
 
 ## Voice
 
-These reviews address the person being reviewed, not the reviewer. Everything the user reads is plain speech: one suggestion per message, each carrying its why in terms of what their next change costs. Mechanical vocabulary (ports, contracts, edge lists, rule numbers) stays inside this file; it never surfaces in user-facing output. Terms kept deliberately: park, superseded, grab-bag. The user picked them, so future edits preserve them.
+These reviews address the person being reviewed, not the reviewer. Everything the user reads is plain speech: one suggestion per message, each carrying its why in terms of what their next change costs. Mechanical vocabulary (ports, contracts, import lists, rule numbers) stays inside this file; it never surfaces in user-facing output. Terms kept deliberately: park, superseded, grab-bag. The user picked them, so future edits preserve them.
 
 ## Architecture prescriptions
 
@@ -91,11 +91,11 @@ A module has one job, nameable in one sentence, and one reason to change. The sa
 
 ### Testability (blackbox/integration, not unit)
 
-The architecture's job for testing: exercise the whole context through its public edges with real or fake dependencies, never mocks of the code under test.
+The architecture's job for testing: exercise the whole context through its public boundaries with real or fake dependencies, never mocks of the code under test.
 
 - **Every port needs a cheap second implementation.** A port exists so tests can substitute it: an in-memory fake, or a container-backed real one (ephemeral DB, throwaway broker). A port with only one possible implementation did not invert anything; it moved the wiring, not the power. That is a `FIX`-level finding, same rule as the directional violation smell.
 - **Prefer fakes and real dependencies to mocks.** A mock pins the shape of a collaborator's calls, so the test breaks on refactors that preserve behavior. A fake fulfills the port, so behavior-preserving refactors keep it green. A test builds its world with fakes and real runtimes; it never asserts call sequences on the system under test.
-- **Fixtures build state through the public edges.** Seed a scenario by driving use cases, public interfaces, or repository ports, not by writing rows into whatever table the current implementation has. Fixtures then survive refactors, and their setup reads as business language. A fixture that must reach past a boundary is reporting a leak.
+- **Fixtures build state through the public boundaries.** Seed a scenario by driving use cases, public interfaces, or repository ports, not by writing rows into whatever table the current implementation has. Fixtures then survive refactors, and their setup reads as business language. A fixture that must reach past a boundary is reporting a leak.
 - **Fixture economics is a review criterion.** Building the scenario for one integration test should be a call site, not archaeology: a fixture/builder module per context (rule 2c applies; `order-scenario.ts` exporting `OrderScenario`). If constructing the fixture takes more lines than the test, the boundary is wrong or construction is hidden, and both join the suggestions list.
 
 ### DDD (when applicable)
@@ -209,9 +209,9 @@ A direct refactor request answers it. The named module is the unit; its direct i
 
 **Log check.** Brownfield reads the review log (**ARCHITECTURE-REVIEW-LOG.md**, repo root) before assessing: every `active` entry is a claim about the code — verify it. A decision the code no longer matches is an inventory fact that earns a row and states which entry it contradicts. Greenfield has no log to check.
 
-Present the current-state outlines and edge list, with the suggestions list carrying its row numbers. Outlines are folder-row roll-ups (depth 2, `←` marks), never a scrolling file map. Describe only: no questions, no fixes, no opinions. Judge nothing until the outline is agreed accurate; wrong facts here become wrong list rows.
+Present the current-state outlines and import list, with the suggestions list carrying its row numbers. Outlines are folder-row roll-ups (depth 2, `←` marks), never a scrolling file map. Describe only: no questions, no fixes, no opinions. Judge nothing until the outline is agreed accurate; wrong facts here become wrong list rows.
 
-For a named module, the inventory stays on it: one row per concern the file carries today, then one edge row per module it imports and per module that imports it. The request's premise — that the file is getting loaded — is a row too, so the inventory confirms or corrects it. A wider edge appears only when the proposed fix reaches it.
+For a named module, the inventory stays on it: one row per concern the file carries today, then one import row per module it imports and per module that imports it. The request's premise — that the file is getting loaded — is a row too, so the inventory confirms or corrects it. A wider import appears only when the proposed fix reaches it.
 
 Ends with one line: "accurate? anything missing?"
 
@@ -268,11 +268,11 @@ Red flags — stop and re-read this section:
 
 ### Phase 3: Wrap-up
 
-Final outlines and edge list reflecting all decisions. The suggestions list shows each row's outcome: fixed, dropped, parked, superseded. Nothing silently vanishes. On request: one Mermaid block per stack for the PR.
+Final outlines and import list reflecting all decisions. The suggestions list shows each row's outcome: fixed, dropped, parked, superseded. Nothing silently vanishes. On request: one Mermaid block per stack for the PR.
 
 Brownfield migration. Ordered steps, smallest risk first.
 
-**Step 0: behavior lock.** Before any structure moves, blackbox or integration tests must pin the behavior at the boundary being changed (module entry points, public interfaces, storage edges).
+**Step 0: behavior lock.** Before any structure moves, blackbox or integration tests must pin the behavior at the boundary being changed (module entry points, public interfaces, storage boundaries).
 
 - Unit tests do not count for this. They pin internals, and internals are exactly what the refactor moves; passing units prove nothing about the behavior crossing the boundary. They remain useful for everything else (rule 4 stands); they are just not a behavior lock.
 - If the lock is missing, adding blackbox/integration tests is the first migration step and joins the suggestions list as `T#` rows, walked like any other suggestion in Phase 2. Their fix ranks ahead of every structural step.
@@ -282,7 +282,7 @@ Brownfield migration. Ordered steps, smallest risk first.
 
 ### Suggestions list
 
-The suggestions list (one line per row: number, kind, headline) is the only artifact that shows all suggestions at once, and it stays compact. Outlines, edges, and migration steps read from it; they are not separate lists.
+The suggestions list (one line per row: number, kind, headline) is the only artifact that shows all suggestions at once, and it stays compact. Outlines, imports, and migration steps read from it; they are not separate lists.
 
 ## Naming conventions
 
@@ -394,7 +394,7 @@ Does it only describe one route's composition?
 
 ## Visual architecture review
 
-Structure is drawn as plain text: outline graphs for shape, edge lists for dependencies, a numbered suggestions list. Plain ASCII only, because it must survive headless sessions, terminal paste, grep, and PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
+Structure is drawn as plain text: outline graphs for shape, import lists for dependencies, a numbered suggestions list. Plain ASCII only, because it must survive headless sessions, terminal paste, grep, and PR text. Box art is banned: it misaligns, wastes tokens, and breaks when edited.
 
 Rendering convention: bold is markdown outside fences. Inside fences, plain glyphs only (tree lines, `+`/`-`, `←`). Changes render in `diff`-tagged fences, so they come out red/green wherever a highlighter exists and readable elsewhere. No raw ANSI codes; chat surfaces strip them into garbage characters.
 
@@ -448,7 +448,7 @@ src/infrastructure/          shared-kernel plumbing only
 Every cross-module dependency becomes one row. This is the lossless form of a dependency graph, and it scales. Thirty rows are readable; a graph of thirty nodes is not.
 
 ```
-edges
+imports
   api.ts -> db.ts                    bypasses the use case
   service.ts -> utils.ts             rule belongs on the owning type
   models -> infrastructure           must point inward
@@ -460,7 +460,7 @@ suggestions list
 ```
 
 ```
-edges (frontend)
+imports (frontend)
   page.tsx -> cart/                  OK (composition)
   cart -> checkout/index.ts          OK (public interface)
   cart -> checkout/model             internal import
@@ -495,7 +495,7 @@ Backend layering (hexagonal):
 - [ ] Is src/infrastructure/ shared-kernel plumbing only: no context repos, no grab-bag?
 - [ ] Is all build-required production code under src/ (rule 0), iac/ outside src/?
 - [ ] Does every port have a second implementation that tests use (fake or container-backed)?
-- [ ] Can a blackbox test build any scenario via public edges and fixtures, without mocks of the system under test?
+- [ ] Can a blackbox test build any scenario via public boundaries and fixtures, without mocks of the system under test?
 
 Frontend layering (feature-based):
 - [ ] Is each business capability its own `features/<capability>/`?
@@ -564,7 +564,7 @@ What each phase emits. Nothing arrives all at once:
 | Phase | Emits |
 |---|---|
 | 0 Scope | one question, or "reviewing X" |
-| 1 Inventory | folder-row outlines + edge list + "accurate?" |
+| 1 Inventory | folder-row outlines + import list + "accurate?" |
 | 2 Suggestion loop | one SUGGESTION/QUESTION per message: refresher, Now/After diff visual, why, proposal; iterate as needed |
 | 3 Wrap-up | final outline; outcomes per row (fixed/dropped/parked/superseded); brownfield migration with behavior-lock tests first; Mermaid on request |
 
