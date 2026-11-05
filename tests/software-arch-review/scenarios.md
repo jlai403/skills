@@ -129,3 +129,57 @@ rule; it is scored separately from activation.
 **Fixture:** `/tmp/opencode/hucklenanny-fixture` at commit `258e541^` (the
 pre-refactor state). Regenerate with
 `git archive 258e541^ | tar -x -C /tmp/opencode/hucklenanny-fixture`.
+
+## S5 — Decision log (greenfield write, brownfield read, compaction)
+
+**What it tests:** the wrap-up contract around
+**`ARCHITECTURE-REVIEW-LOG.md`** (repo root, created by the review): R12
+greenfield creates and writes it, R13 brownfield reads it before assessing and
+appends its own decisions, R14 compacts it when active entries pass 40. Both
+arms use the forced-load runtime (skill path prelude) — this scores the
+*behavior when loaded*, not activation.
+
+**R12 — greenfield write.** Empty directory (e.g.
+`/tmp/opencode/greenfield-fixture-rN/`, nothing in it). User message:
+
+> We're starting a subscription billing service from scratch — customers,
+> plans, invoices, usage metering. Design the structure before we build.
+
+Continuation once the structure is agreed: **"Wrap up."** Pass: the review
+ends with the log written — one entry per structural decision, dated, mode
+`greenfield`, reasons kept, `Status: active`. Fail: final outline with no
+artifact.
+
+**R13 + R14 — brownfield read + append + compaction (one seeded scenario).**
+S1 fixture copy per rep, seeded with a pre-existing log via
+`seed-log.sh <fixture>`: 41 `active` + 4 `superseded` + 2 `parked` entries,
+including two `active` decisions the code contradicts (models storage-free vs
+V1's `models/order.ts` → db; holding-folder ban vs V4 `utils/helpers.ts`).
+S1 user message as-is; continuations: *"Accurate. Fix #1, park #3."* then
+**"Wrap up."**
+
+Pass (R13): the first response reads the log and the two contradicted
+decisions surface in the inventory/rows as facts
+("log says X; code now does Y") before any new structure is proposed; wrap-up
+appends one entry per decided suggestion and updates statuses.
+Pass (R14): at wrap-up with 41 active entries the log compacts — superseded
+entries fold into a **Settled history** section (one line each: date —
+decision — why superseded), active entries survive verbatim or grouped, and
+the compaction is reported in the wrap-up.
+
+Fail (R13/14): no log read at the start; no write at wrap-up; or an
+over-threshold log left untouched.
+
+**RED baseline (2026-11-05, 1 multi-turn rep each).** R12 confirmed: a
+greenfield wrap-up ends *"No files written"* — artifact is structural absence.
+R14 confirmed: the seeded log left at 44 active/4 superseded/2 parked after
+wrap-up, no Settled history fold. R13 **read and append do not
+discriminate**: the baseline read the log unprompted, produced a full
+"log drift" fact section (even spotting log-internal contradictions
+T-24 vs T-34), and appended well-formed entries for #1/#2/#4/#8 at its
+fix-point — the write gap is narrower than drafted: the wrap-up **did not
+reconcile statuses** (the storage-free/grab-bag drift entries stayed
+`active` at 44). R13's rubric is therefore rescored to the discriminating
+residual: the wrap-up updates the `Status` of entries the review just
+resolved or superseded — the log reconciles with itself. GREEN: 3 reps
+brownfield (R13+R14 share runs), 2 reps greenfield.

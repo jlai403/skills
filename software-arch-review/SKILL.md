@@ -22,7 +22,7 @@ Two modes:
 - **Greenfield**: designing a new feature or system from scratch
 - **Brownfield**: reviewing existing code that needs restructuring
 
-Companion skills: `domain-modeling` defines what the domain concepts are, in the glossary and ADRs. This skill enforces where those concepts live and what they may import. Reference domain-modeling's output. Do not re-generate glossaries or ADRs here.
+Companion skills: `domain-modeling` defines what the domain concepts are, in the glossary and ADRs. This skill enforces where those concepts live and what they may import. Reference domain-modeling's output. Do not re-generate glossaries or ADRs here. Structural decisions land in this review's decision log (Phase 3); domain concepts stay in domain-modeling's ADRs.
 
 ## Voice
 
@@ -207,6 +207,8 @@ A direct refactor request answers it. The named module is the unit; its direct i
 
 ### Phase 1: Inventory
 
+**Log check.** Brownfield reads the review log (**ARCHITECTURE-REVIEW-LOG.md**, repo root) before assessing: every `active` entry is a claim about the code — verify it. A decision the code no longer matches is an inventory fact that earns a row and states which entry it contradicts. Greenfield has no log to check.
+
 Present the current-state outlines and edge list, with the suggestions list carrying its row numbers. Outlines are folder-row roll-ups (depth 2, `←` marks), never a scrolling file map. Describe only: no questions, no fixes, no opinions. Judge nothing until the outline is agreed accurate; wrong facts here become wrong list rows.
 
 For a named module, the inventory stays on it: one row per concern the file carries today, then one edge row per module it imports and per module that imports it. The request's premise — that the file is getting loaded — is a row too, so the inventory confirms or corrects it. A wider edge appears only when the proposed fix reaches it.
@@ -239,7 +241,7 @@ One suggestion per exchange:
 
 That is the whole message: label, refresher, one Now/After visual, why written as the cost of the next change, proposal. The user decides: make the change, explain why it is not a problem, or park it with a note. A QUESTION row spots both competing placements as two 2-line visuals instead of prose.
 
-"Can we break this up?" is the user agreeing to hear the split, not agreeing to it. The split is one suggestion, however many files it moves — the proposed seams, what moves, what stays — and the edit waits for the answer. Their answer is the only input that can still change the seam.
+"Can we break this up?" is the user agreeing to hear the split, not agreeing to it. The split is one suggestion, however many files it moves — the proposed seams, what moves, what stays — and the edit waits for the answer.
 
 - The refresher is mandatory and bounded: one to two sentences on what the touched code does today and why it exists, written for a developer seeing it for the first time. If the reader must remember the codebase to follow the row, the row starts late. It is context only — verdicts, alternatives, and history stay in the why.
 
@@ -262,6 +264,7 @@ For a review already under way, the user may compress pacing — skip scope, ski
 Red flags — stop and re-read this section:
 - a message carrying a now/after diff for every row
 - "skipping the flow as requested" — the request bought speed, not the exchange shape
+- a Phase 1 drift row decided, its log entry still `active`
 
 ### Phase 3: Wrap-up
 
@@ -274,6 +277,8 @@ Brownfield migration. Ordered steps, smallest risk first.
 - Unit tests do not count for this. They pin internals, and internals are exactly what the refactor moves; passing units prove nothing about the behavior crossing the boundary. They remain useful for everything else (rule 4 stands); they are just not a behavior lock.
 - If the lock is missing, adding blackbox/integration tests is the first migration step and joins the suggestions list as `T#` rows, walked like any other suggestion in Phase 2. Their fix ranks ahead of every structural step.
 - Scope: tests pin the boundary under refactor, per step. This is not a demand for repo-wide coverage before anything moves.
+
+**Decision log.** The review ends by writing **ARCHITECTURE-REVIEW-LOG.md** at the repo root: one entry per suggestion with a decision — date, mode, decision, alternatives, why, `Status: active|parked|superseded`. Greenfield creates it; brownfield appends and updates. A review that changed nothing appends nothing. Every Phase 1 drift row states which log entry it contradicts; when that row is decided (fixed, parked, superseded), flip the contradicted entry's `Status` in the same write — `superseded` when fixed, `parked` when parked. The wrap-up enumerates every entry whose `Status` changed; a just-contradicted entry left `active` at wrap-up is an error — rerun the log check before closing. At 40 active entries, compact in the wrap-up: fold superseded entries into a Settled history section, one line each (date — decision — why superseded), and drift-check the oldest remaining actives against the current structure. Deletion is not compaction. Report each fold.
 
 ### Suggestions list
 
