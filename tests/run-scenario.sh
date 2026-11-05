@@ -36,6 +36,9 @@ cd "$EVAL_WORKDIR"
 
 run_home="$EVAL_HOME"
 prelude=""
+# Model override (quota walls, comparisons): EVAL_MODEL=opencode/beam-free
+model_args=()
+[[ -n "${EVAL_MODEL:-}" ]] && model_args=(-m "${EVAL_MODEL}")
 if [[ "$skill" == install:* ]]; then
   skill_path="${skill#install:}"
   [[ -f "$skill_path" ]] || { echo "no skill file at $skill_path" >&2; exit 2; }
@@ -55,7 +58,7 @@ elif [[ "$skill" != "-" ]]; then
 fi
 
 if [[ "$sid" != "" ]]; then
-  HOME="$run_home" opencode --standalone run -s "$sid" "$prompt"
+  HOME="$run_home" opencode --standalone run ${model_args[@]+"${model_args[@]}"} -s "$sid" "$prompt"
 else
-  HOME="$run_home" opencode --standalone run --title "${slug}-$(date +%H%M%S)" "${prelude}${prompt}"
+  HOME="$run_home" opencode --standalone run ${model_args[@]+"${model_args[@]}"} --title "${slug}-$(date +%H%M%S)" "${prelude}${prompt}"
 fi

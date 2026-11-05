@@ -46,6 +46,10 @@ pstack's two-tier pattern: static checks run everywhere (join
   agent must discover it. That arm uses
   `/tmp/opencode/eval-home-installed/.../opencode.db` for session lookup.
   Parallel installed runs are safe (the copy is `flock`-guarded).
+- **Model override:** `EVAL_MODEL=opencode/beam-free tests/run-scenario.sh …`
+  passes `-m` through to `opencode run` (used after the 2026-11-05 free-quota
+  wall; the default stays `big-pickle`). Record the model per cycle — one
+  variable at a time.
 
 ## Adding a skill to the harness
 
