@@ -25,3 +25,7 @@ install:
   cursor/plugins:
     skills: [unslop, reflect]
     agents: [claude-code, opencode, gemini-cli]
+
+  cloudflare/security-audit-skill:
+    skills: [security-audit]
+    agents: [claude-code, opencode, gemini-cli]
