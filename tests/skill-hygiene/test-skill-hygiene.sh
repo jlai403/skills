@@ -12,14 +12,16 @@
 #   4. name/description carry no unquoted `: ` scalar (the YAML bug that makes
 #      installers skip the skill without error — see coding-preferences)
 #   5. description fits the agent-skills spec cap (1024 chars)
-#   6. SKILL.md stays under the word ceiling (regression guard, not style:
-#      set at ~1.2x the largest file at authoring time; tighten deliberately)
+#   6. SKILL.md stays under the word ceiling (3,000 — after the 2026-11-05
+#      split: procedures in core, lookup material in references/)
+#   6b. every references/*.md is under its ceiling and linked from SKILL.md
 #   7. every backticked *.md path inside a SKILL.md resolves on disk here
 #
 # Usage: tests/skill-hygiene/test-skill-hygiene.sh
 set -uo pipefail
 
-WORD_CEILING=6000
+WORD_CEILING=3000
+REFERENCE_CEILING=3000
 DESCRIPTION_CAP=1024
 ERRORS=()
 
@@ -83,9 +85,18 @@ for name in "${LOCAL_SKILLS[@]}"; do
   desc_chars=${#desc_chars}
   (( desc_chars <= DESCRIPTION_CAP )) || fail "$file: description is $desc_chars chars (cap $DESCRIPTION_CAP)"
 
-  # 6. word ceiling
+  # 6. word ceiling (core SKILL.md stays lean; detail lives in references)
   words=$(wc -w < "$file")
-  (( words <= WORD_CEILING )) || fail "$file: $words words exceeds ceiling $WORD_CEILING — trim or deliberately raise the ceiling"
+  (( words <= WORD_CEILING )) || fail "$file: $words words exceeds ceiling $WORD_CEILING — move detail to references/ or trim"
+
+  # 6b. references: capped, and every one is linked from SKILL.md (no orphans)
+  for ref in "$name"/references/*.md; do
+    [[ -e "$ref" ]] || continue
+    rel="references/$(basename "$ref")"
+    ref_words=$(wc -w < "$ref")
+    (( ref_words <= REFERENCE_CEILING )) || fail "$ref: $ref_words words exceeds reference ceiling $REFERENCE_CEILING"
+    grep -qF "\`$rel\`" "$file" || fail "$name: $rel exists but SKILL.md never links it (orphan reference)"
+  done
 
   # 7. backticked *.md references resolve (relative to the skill dir, then repo root)
   while IFS= read -r target; do
